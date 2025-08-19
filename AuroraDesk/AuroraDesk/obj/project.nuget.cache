@@ -1,22 +1,24 @@
 {
   "version": 2,
-  "dgSpecHash": "gJR2jH9odEE=",
+  "dgSpecHash": "umS6Z9g+iHM=",
   "success": true,
   "projectFilePath": "D:\\Commonly_used_files\\AuroraDesk\\AuroraDesk\\AuroraDesk\\AuroraDesk.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.17\\microsoft.net.illink.tasks.8.0.17.nupkg.sha512",
     "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.web.webview2\\1.0.3405.78\\microsoft.web.webview2.1.0.3405.78.nupkg.sha512",
     "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windows.sdk.buildtools\\10.0.26100.4654\\microsoft.windows.sdk.buildtools.10.0.26100.4654.nupkg.sha512",
     "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windowsappsdk\\1.7.250606001\\microsoft.windowsappsdk.1.7.250606001.nupkg.sha512",
-    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.17\\microsoft.netcore.app.runtime.win-arm64.8.0.17.nupkg.sha512",
     "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x86\\8.0.17\\microsoft.netcore.app.runtime.win-x86.8.0.17.nupkg.sha512",
-    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.17\\microsoft.netcore.app.runtime.win-x64.8.0.17.nupkg.sha512",
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.netcore.app.crossgen2.win-x64\\8.0.17\\microsoft.netcore.app.crossgen2.win-x64.8.0.17.nupkg.sha512",
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512",
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x86\\8.0.17\\microsoft.aspnetcore.app.runtime.win-x86.8.0.17.nupkg.sha512",
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.17\\microsoft.netcore.app.runtime.win-arm64.8.0.17.nupkg.sha512",
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.17\\microsoft.aspnetcore.app.runtime.win-x64.8.0.17.nupkg.sha512",
     "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\8.0.17\\microsoft.windowsdesktop.app.runtime.win-arm64.8.0.17.nupkg.sha512",
-    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x86\\8.0.17\\microsoft.windowsdesktop.app.runtime.win-x86.8.0.17.nupkg.sha512",
     "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.17\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.17.nupkg.sha512",
     "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\8.0.17\\microsoft.aspnetcore.app.runtime.win-arm64.8.0.17.nupkg.sha512",
-    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x86\\8.0.17\\microsoft.aspnetcore.app.runtime.win-x86.8.0.17.nupkg.sha512",
-    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.17\\microsoft.aspnetcore.app.runtime.win-x64.8.0.17.nupkg.sha512",
-    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.17\\microsoft.netcore.app.runtime.win-x64.8.0.17.nupkg.sha512",
+    "C:\\Users\\Skydimo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x86\\8.0.17\\microsoft.windowsdesktop.app.runtime.win-x86.8.0.17.nupkg.sha512"
   ],
   "logs": []
 }
