@@ -50,6 +50,12 @@
         "net8.0-windows10.0.19041": {
           "targetAlias": "net8.0-windows10.0.19041.0",
           "dependencies": {
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.17, )",
+              "autoReferenced": true
+            },
             "Microsoft.Web.WebView2": {
               "target": "Package",
               "version": "[1.0.3405.78, )"
@@ -85,6 +91,10 @@
             },
             {
               "name": "Microsoft.AspNetCore.App.Runtime.win-x86",
+              "version": "[8.0.17, 8.0.17]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Crossgen2.win-x64",
               "version": "[8.0.17, 8.0.17]"
             },
             {

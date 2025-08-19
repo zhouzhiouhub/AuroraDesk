@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AuroraDesk")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3b251212f16388c2d1f25ea7e7d4b5262d80da24")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8682ea45b541b286d203237914ec474ccbb8d14a")]
 [assembly: System.Reflection.AssemblyProductAttribute("AuroraDesk")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AuroraDesk")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
