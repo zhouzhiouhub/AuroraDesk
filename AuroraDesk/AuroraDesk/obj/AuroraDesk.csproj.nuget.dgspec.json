@@ -50,12 +50,6 @@
         "net8.0-windows10.0.19041": {
           "targetAlias": "net8.0-windows10.0.19041.0",
           "dependencies": {
-            "Microsoft.NET.ILLink.Tasks": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[8.0.17, )",
-              "autoReferenced": true
-            },
             "Microsoft.Web.WebView2": {
               "target": "Package",
               "version": "[1.0.3405.78, )"
