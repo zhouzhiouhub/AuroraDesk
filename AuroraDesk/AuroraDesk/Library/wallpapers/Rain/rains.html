@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>下雨场景</title>
+<style>
+  :root{
+    --sky-top: #0a1a2b;
+    --sky-mid: #102a44;
+    --sky-bottom: #1b3551;
+    --rain: rgba(255,255,255,.9);
+    --rain-dim: rgba(255,255,255,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:linear-gradient(to bottom,var(--sky-top),var(--sky-mid) 60%,var(--sky-bottom));
+    overflow:hidden;
+  }
+  .scene{position:relative;width:100%;height:100%;isolation:isolate;}
+
+  /* 云层 */
+  .clouds,.clouds::before,.clouds::after{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(60vw 20vh at 10% 15%,rgba(255,255,255,.06),transparent 60%),
+      radial-gradient(50vw 18vh at 70% 8%,rgba(255,255,255,.05),transparent 65%),
+      radial-gradient(65vw 22vh at 40% 12%,rgba(255,255,255,.05),transparent 70%);
+    filter:blur(6px);
+    animation:drift 120s linear infinite;
+    pointer-events:none;
+  }
+  .clouds::before{
+    content:"";
+    background:
+      radial-gradient(55vw 18vh at 20% 18%,rgba(255,255,255,.05),transparent 60%),
+      radial-gradient(60vw 20vh at 80% 10%,rgba(255,255,255,.05),transparent 65%);
+    animation-duration:160s;
+    opacity:.8;
+  }
+  .clouds::after{
+    content:"";
+    background:
+      radial-gradient(70vw 22vh at 30% 14%,rgba(255,255,255,.045),transparent 70%),
+      radial-gradient(50vw 18vh at 60% 10%,rgba(255,255,255,.05),transparent 65%);
+    animation-duration:200s;
+    opacity:.7;
+  }
+  @keyframes drift{0%{background-position:0 0;}100%{background-position:200vw 0;}}
+
+  /* 雨滴 */
+  .rain{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:10;}
+  .drop{
+    position:absolute;top:-15vh;width:2px;height:calc(12px * var(--size,1));
+    left: var(--left,50vw);
+    opacity:var(--alpha,.8);
+    background:linear-gradient(to bottom,transparent,var(--rain) 60%,var(--rain-dim));
+    border-radius:1px;
+    animation:fall var(--dur,1.2s) var(--delay,0s) linear infinite;
+  }
+  @keyframes fall{
+    0%{transform:translate3d(calc(var(--drift,0) * -1vw),-120vh,0);}
+    100%{transform:translate3d(calc(var(--drift,0) * 1vw),120vh,0);}
+  }
+
+  /* 闪电 */
+  .lightning{
+    position:absolute;inset:0;z-index:20;pointer-events:none;
+    background:
+      radial-gradient(120% 100% at 60% 0%,rgba(255,255,255,.9),transparent 40%),
+      radial-gradient(100% 100% at 40% 0%,rgba(255,255,255,.9),transparent 45%);
+    mix-blend-mode:screen;opacity:0;
+  }
+  .lightning.flash{animation:flash .8s ease;}
+  @keyframes flash{
+    0%{opacity:0;}10%{opacity:.9;}20%{opacity:.15;}35%{opacity:.7;}100%{opacity:0;}
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="clouds"></div>
+  <div class="rain" id="rain"></div>
+  <div class="lightning" id="lightning"></div>
+</div>
+<script>
+(function(){
+  const rainEl=document.getElementById('rain');
+  const lightning=document.getElementById('lightning');
+  function rand(min,max){return Math.random()*(max-min)+min;}
+  function makeRain(count){
+    rainEl.innerHTML='';
+    const vw=window.innerWidth;
+    for(let i=0;i<count;i++){
+      const drop=document.createElement('i');
+      drop.className='drop';
+      const left=rand(0,vw);
+      drop.style.setProperty('--left',left+'px');
+      drop.style.left=left+'px';
+      drop.style.setProperty('--size',rand(.7,1.6));
+      drop.style.setProperty('--alpha',rand(.35,.95));
+      drop.style.setProperty('--dur',(rand(.8,1.6)).toFixed(2)+'s');
+      drop.style.setProperty('--delay',(-rand(0,2)).toFixed(2)+'s');
+      drop.style.setProperty('--drift',(Math.random()*1.6-.8).toFixed(2));
+      rainEl.appendChild(drop);
+    }
+  }
+  function lightningOnce(){
+    lightning.classList.remove('flash');
+    void lightning.offsetWidth;
+    lightning.classList.add('flash');
+  }
+  function lightningLoop(){
+    setTimeout(()=>{
+      if(Math.random()<.6) lightningOnce();
+      lightningLoop();
+    },rand(6000,12000));
+  }
+  makeRain(260); // 默认雨滴数量
+  lightningLoop();
+})();
+</script>
+</body>
+</html>

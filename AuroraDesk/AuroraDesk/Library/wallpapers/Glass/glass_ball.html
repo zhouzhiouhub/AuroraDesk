@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>透明背景玻璃球</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --size: 320px;   /* 球体直径 */
+    }
+
+    html, body{
+      margin:0; padding:0;
+      width:100%; height:100%;
+      /* background: transparent; */
+      background: #000;
+      overflow:hidden;
+    }
+
+    /* 模拟背景层（可开关） */
+    .fake-bg {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      background-size: cover;
+      z-index: -1;
+      transition: opacity 0.3s;
+    }
+    .fake-bg.hidden {
+      opacity: 0;
+    }
+
+    .ball{
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
+      transform-style: preserve-3d;
+      pointer-events: none;
+
+      background:
+        radial-gradient(120% 120% at 30% 30%,
+                        rgba(255,255,255,0.80) 0%,
+                        rgba(255,255,255,0.35) 26%,
+                        rgba(255,255,255,0.12) 48%,
+                        rgba(255,255,255,0.04) 62%,
+                        rgba(255,255,255,0.00) 72%),
+        radial-gradient(80% 80% at 70% 75%,
+                        rgba(255,255,255,0.07) 0%,
+                        rgba(255,255,255,0.00) 70%),
+        rgba(255,255,255,0.03);
+
+      -webkit-backdrop-filter: blur(14px) saturate(115%);
+              backdrop-filter: blur(14px) saturate(115%);
+
+      border: 1px solid rgba(255,255,255,0.28);
+      box-shadow:
+        0 8px 28px rgba(0,0,0,0.25),
+        inset 0 -28px 80px rgba(255,255,255,0.10),
+        inset 0  16px 36px rgba(255,255,255,0.35);
+    }
+
+    /* 高光层 */
+    .highlight{
+      position: absolute;
+      inset:0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%,
+                                  rgba(255,255,255,0.9) 0%,
+                                  rgba(255,255,255,0.1) 35%,
+                                  rgba(255,255,255,0) 60%);
+      mix-blend-mode: screen;
+      pointer-events:none;
+      transform: translateZ(20px);
+    }
+
+    /* 彩色折射边缘 */
+    .ring{
+      position:absolute;
+      inset:-1px;
+      border-radius:50%;
+      background:
+        conic-gradient(from 210deg,
+          rgba(255,255,255,0.60),
+          rgba(255,255,255,0.10) 60%,
+          rgba(255,255,255,0.60));
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+              mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+      opacity:.6;
+      pointer-events:none;
+    }
+  </style>
+</head>
+<body>
+  <!-- 模拟背景层 -->
+  <div class="fake-bg hidden" id="fake-bg"></div>
+
+  <!-- 玻璃球 -->
+  <div class="ball" id="ball">
+    <div class="highlight" id="highlight"></div>
+    <div class="ring"></div>
+  </div>
+
+  <script>
+    const ball = document.getElementById("ball");
+    const highlight = document.getElementById("highlight");
+    const fakeBg = document.getElementById("fake-bg");
+
+    document.addEventListener("mousemove", (e) => {
+      const { innerWidth, innerHeight } = window;
+      const x = (e.clientX / innerWidth - 0.5) * 2;  // -1 ~ 1
+      const y = (e.clientY / innerHeight - 0.5) * 2; // -1 ~ 1
+
+      const rotX = -y * 20; // 上下倾斜
+      const rotY = x * 20;  // 左右倾斜
+
+      ball.style.transform =
+        `translate(-50%, -50%) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+
+      // 高光位置随鼠标偏移
+      highlight.style.background =
+        `radial-gradient(circle at ${30 + x*20}% ${30 + y*20}%,
+          rgba(255,255,255,0.9) 0%,
+          rgba(255,255,255,0.1) 35%,
+          rgba(255,255,255,0) 60%)`;
+    });
+
+    // 按 B 键开关模拟背景
+    document.addEventListener("keydown", (e) => {
+      if (e.key.toLowerCase() === "b") {
+        fakeBg.classList.toggle("hidden");
+      }
+    });
+  </script>
+</body>
+</html>

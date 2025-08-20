@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>会眨眼、跟随鼠标的两只眼睛</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --eye-w: 220px;    /* 单只眼睛宽度 */
+      --eye-h: 160px;    /* 单只眼睛高度 */
+      --pupil-r: 28px;   /* 瞳孔半径 */
+      --move-ratio: 0.32;/* 瞳孔最大偏移占眼睛短轴的一部分 */
+      --idle-ms: 1500;   /* 无操作多久闭眼（毫秒） */
+    }
+
+    html, body{
+      margin:0; padding:0;
+      width:100%; height:100%;
+      background:#000;     /* 黑色背景 */
+      overflow:hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    /* 居中容器 */
+    .stage{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: min(6vw, 56px);
+      pointer-events:none; /* 不拦截鼠标（只用 document 监听） */
+    }
+
+    /* 单只眼睛 */
+    .eye{
+      position:relative;
+      width: var(--eye-w);
+      height: var(--eye-h);
+      border-radius: 50%/55%;
+      background: radial-gradient(120% 120% at 50% 55%, #fff 0%, #e8edf2 60%, #d7dde2 85%, #c9ced3 100%);
+      box-shadow:
+        0 12px 40px rgba(0,0,0,.45),
+        inset 0 -18px 36px rgba(0,0,0,.18),
+        inset 0  10px 26px rgba(255,255,255,.65);
+      overflow:hidden;
+      transform: translateZ(0);
+    }
+
+    /* 虹膜（带一点玻璃质感） */
+    .iris{
+      position:absolute;
+      left:50%; top:50%;
+      width: calc(var(--pupil-r) * 5);
+      height: calc(var(--pupil-r) * 5);
+      transform: translate(-50%, -50%);
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 50% 50%, #2d8dc5 0%, #10639a 55%, #0b3e63 100%);
+      filter: saturate(1.15) contrast(1.05);
+      box-shadow:
+        inset 0 0 28px rgba(0,0,0,.45),
+        0 8px 18px rgba(0,0,0,.35);
+    }
+
+    /* 瞳孔 */
+    .pupil{
+      position:absolute;
+      left:50%; top:50%;
+      width: calc(var(--pupil-r) * 2);
+      height: calc(var(--pupil-r) * 2);
+      transform: translate(-50%, -50%);
+      border-radius:50%;
+      background: radial-gradient(circle at 45% 45%, #111 0%, #000 65%, #000 100%);
+      box-shadow:
+        inset 0 0 14px rgba(255,255,255,.06),
+        0 0 20px rgba(0,0,0,.35);
+    }
+
+    /* 高光 */
+    .specular{
+      position:absolute;
+      left:50%; top:50%;
+      width: calc(var(--pupil-r));
+      height: calc(var(--pupil-r));
+      transform: translate(-80%, -80%);
+      border-radius:50%;
+      background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,.15) 70%, transparent 75%);
+      mix-blend-mode: screen;
+      filter: blur(0.2px);
+      pointer-events:none;
+    }
+
+    /* 上下眼睑，用 scaleY 实现开合 */
+    .lid{
+      position:absolute;
+      left:0; right:0;
+      height:50%;
+      background: linear-gradient(#111, #000);
+      transform-origin: center bottom;
+      transform: scaleY(0);       /* 0=不遮挡（睁眼） */
+      transition: transform .22s ease-in-out;
+      z-index:3;
+    }
+    .lid.bottom{
+      top:50%;
+      transform-origin: center top;
+      background: linear-gradient(#000, #111);
+    }
+
+    /* 眼睑的柔和阴影 */
+    .shadow{
+      position:absolute;
+      inset:0;
+      border-radius: inherit;
+      box-shadow: inset 0 20px 30px rgba(0,0,0,.45), inset 0 -16px 22px rgba(0,0,0,.35);
+      pointer-events:none;
+      z-index:2;
+    }
+
+    /* 闭眼状态：上/下眼睑合拢为1 */
+    .closed .lid.top{ transform: scaleY(1); }
+    .closed .lid.bottom{ transform: scaleY(1); }
+
+    /* 睁眼时有轻微呼吸感（可选） */
+    .eye:not(.closed){
+      animation: breathe 3.5s ease-in-out infinite;
+    }
+    @keyframes breathe{
+      0%,100%{ transform: translateZ(0) scale(1); }
+      50%{ transform: translateZ(0) scale(1.01); }
+    }
+
+    /* 自适应（小屏减小眼睛尺寸） */
+    @media (max-width: 640px){
+      :root{
+        --eye-w: 168px;
+        --eye-h: 120px;
+        --pupil-r: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <!-- 左眼 -->
+    <div class="eye closed" data-eye>
+      <div class="lid top"></div>
+      <div class="lid bottom"></div>
+      <div class="shadow"></div>
+
+      <div class="iris" data-iris>
+        <div class="pupil" data-pupil></div>
+        <div class="specular"></div>
+      </div>
+    </div>
+
+    <!-- 右眼 -->
+    <div class="eye closed" data-eye>
+      <div class="lid top"></div>
+      <div class="lid bottom"></div>
+      <div class="shadow"></div>
+
+      <div class="iris" data-iris>
+        <div class="pupil" data-pupil></div>
+        <div class="specular"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 逻辑：
+     * 1) 监听鼠标/触摸移动：眼睛进入“睁开”状态，并让瞳孔朝鼠标方向偏移（限幅）。
+     * 2) 若超过 idleMs 未移动：加上 .closed 类，眼睑合上。
+     */
+    const eyes = [...document.querySelectorAll('[data-eye]')];
+    const irises = [...document.querySelectorAll('[data-iris]')];
+    const pupils = [...document.querySelectorAll('[data-pupil]')];
+
+    const idleMs = parseInt(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--idle-ms')) || 1500;
+
+    let idleTimer = null;
+    let lastPointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    function openEyes() {
+      eyes.forEach(e => e.classList.remove('closed'));
+    }
+    function closeEyes() {
+      eyes.forEach(e => e.classList.add('closed'));
+    }
+    function resetIdleTimer() {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(closeEyes, idleMs);
+    }
+
+    function clamp(val, min, max){ return Math.max(min, Math.min(max, val)); }
+
+    function movePupils(clientX, clientY){
+      lastPointer = { x: clientX, y: clientY };
+
+      // 让眼睛睁开并重置“闭眼”计时
+      openEyes();
+      resetIdleTimer();
+
+      irises.forEach((iris, idx) => {
+        const eye = eyes[idx];
+        const rect = eye.getBoundingClientRect();
+
+        // 眼睛中心
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        // 指向向量
+        const vx = clientX - cx;
+        const vy = clientY - cy;
+
+        // 椭圆眼睛的短轴（用高度近似）
+        const maxOffset = rect.height * parseFloat(getComputedStyle(document.documentElement)
+                            .getPropertyValue('--move-ratio'));
+
+        // 计算限制半径（避免超出眼白）
+        const dist = Math.hypot(vx, vy);
+        const scale = dist > 0 ? Math.min(1, maxOffset / dist) : 0;
+
+        const ox = vx * scale;  // 偏移 x
+        const oy = vy * scale;  // 偏移 y
+
+        // 移动虹膜（带着瞳孔）
+        iris.style.transform = `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px))`;
+      });
+    }
+
+    // 指针移动事件（鼠标 + 触摸）
+    function onPointerMove(e){
+      if (e.touches && e.touches[0]) {
+        movePupils(e.touches[0].clientX, e.touches[0].clientY);
+      } else {
+        movePupils(e.clientX, e.clientY);
+      }
+    }
+
+    document.addEventListener('mousemove', onPointerMove, { passive: true });
+    document.addEventListener('touchmove', onPointerMove, { passive: true });
+
+    // 初始时先闭眼，等待移动后睁开
+    closeEyes();
+
+    // 窗口尺寸变化时，保持瞳孔朝向最近一次指针位置
+    window.addEventListener('resize', () => {
+      movePupils(lastPointer.x, lastPointer.y);
+    });
+
+    // 也加个轻微“随机眨眼”（在睁眼时，偶尔快速闭合一下）
+    setInterval(() => {
+      const anyOpen = eyes.some(e => !e.classList.contains('closed'));
+      if (anyOpen && Math.random() < 0.05) {
+        eyes.forEach(e => e.classList.add('closed'));
+        setTimeout(() => eyes.forEach(e => e.classList.remove('closed')), 140);
+      }
+    }, 1200);
+  </script>
+</body>
+</html>
