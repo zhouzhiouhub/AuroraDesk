@@ -9,6 +9,25 @@
     mc:Ignorable="d">
 
     <Grid>
-        <!-- LogoShowcase 控件内容将在这里添加 -->
+        <!-- LogoShowcase 控件 - 右上角显示 logo 和 AuroraDesk 文本 -->
+        <StackPanel Orientation="Horizontal" 
+                    HorizontalAlignment="Left" 
+                    VerticalAlignment="Top"
+                    Margin="20,10,0,0">
+            
+            <!-- Logo 图像 -->
+            <Image Source="ms-appx:///Assets/Square44x44Logo.scale-200.png"
+                   Width="32" 
+                   Height="32"
+                   Margin="0,0,8,0"
+                   VerticalAlignment="Center"/>
+            
+            <!-- AuroraDesk 文本 -->
+            <TextBlock Text="AuroraDesk"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="#FF2D89EF"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
     </Grid>
 </UserControl>

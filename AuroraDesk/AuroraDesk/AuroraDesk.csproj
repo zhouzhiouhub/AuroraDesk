@@ -64,6 +64,13 @@
 	  <Content Remove="Assets\Wide310x150Logo.scale-400.png" />
 	</ItemGroup>
 
+	<!-- 复制本地壁纸资源到输出目录 -->
+	<ItemGroup>
+		<Content Include="Library\**\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
 
 	<ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
