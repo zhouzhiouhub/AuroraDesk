@@ -73,7 +73,7 @@ namespace AuroraDesk.Pages
                 {
                     var thumbPath = FindThumbnailForDir(dir)
                         ?? FirstExisting(
-                            Path.Combine(baseDir, "Library", "wallpapers", "static", "gral.png")
+                            Path.Combine(baseDir, "Library", "wallpapers", "static", "girl.png")
                         );
                     _items.Add(new WallpaperItem
                     {
@@ -103,7 +103,7 @@ namespace AuroraDesk.Pages
             {
                 if (!(IsHtmlFile(file) || IsImageFile(file))) continue;
                 var title = Path.GetFileNameWithoutExtension(file);
-                var thumb = IsImageFile(file) ? file : Path.Combine(baseDir, "Library", "wallpapers", "static", "gral.png");
+                var thumb = IsImageFile(file) ? file : Path.Combine(baseDir, "Library", "wallpapers", "static", "girl.png");
                 if (!File.Exists(thumb)) thumb = file;
                 _items.Add(new WallpaperItem
                 {
@@ -170,6 +170,13 @@ namespace AuroraDesk.Pages
                 src = _items.Where(i => i.Title.Contains(k, StringComparison.OrdinalIgnoreCase)).ToList();
             }
             WallpaperList.ItemsSource = src;
+        }
+
+        public void ReloadAll()
+        {
+            _items.Clear();
+            LoadWallpapers();
+            ApplyFilter(null);
         }
 
         private static string CreateImageWrapperHtml(string imagePath)
