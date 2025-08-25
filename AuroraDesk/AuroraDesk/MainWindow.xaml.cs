@@ -9,6 +9,8 @@ using AuroraDesk.Core;
 using AuroraDesk.Models;
 using System.Linq;
 using AuroraDesk.Pages;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -124,6 +126,43 @@ namespace AuroraDesk
         private FrameworkElement CreateHelpPlaceholder()
         {
             return new TextBlock { Text = "帮助：快速上手 / 常见问题 / 日志位置", Opacity = 0.8, Margin = new Thickness(16) };
+        }
+
+        private async void OnAddWallpaperClicked(object sender, RoutedEventArgs e)
+        {
+            if (!SearchBox.IsEnabled)
+            {
+                // 非图库页也允许添加，但优先跳到图库页
+                NavigateTo("Gallery");
+            }
+
+            var picker = new FileOpenPicker();
+            var hwnd = WindowNative.GetWindowHandle(this);
+            InitializeWithWindow.Initialize(picker, hwnd);
+            picker.FileTypeFilter.Add(".html");
+            picker.FileTypeFilter.Add(".htm");
+            picker.FileTypeFilter.Add(".png");
+            picker.FileTypeFilter.Add(".jpg");
+            picker.FileTypeFilter.Add(".jpeg");
+            picker.FileTypeFilter.Add(".gif");
+
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+
+            // 简单处理：复制到 Library/wallpapers/Downloads 下并刷新
+            var baseDir = AppContext.BaseDirectory;
+            var targetDir = Path.Combine(baseDir, "Library", "wallpapers", "Downloads");
+            Directory.CreateDirectory(targetDir);
+            var targetPath = Path.Combine(targetDir, file.Name);
+            using (var src = await file.OpenStreamForReadAsync())
+            using (var dst = File.Create(targetPath))
+            {
+                await src.CopyToAsync(dst);
+            }
+
+            // 让图库刷新（重新创建页面或触发其内部重载）
+            _galleryPage = new GalleryPage();
+            ContentFrame.Content = _galleryPage;
         }
 
         // 壁纸点击处理已在 GalleryPage 中实现

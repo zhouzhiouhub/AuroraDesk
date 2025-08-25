@@ -27,12 +27,15 @@
                 <Image Source="ms-appx:///Assets/Square44x44Logo.scale-200.png" Width="32" Height="32" VerticalAlignment="Center"/>
                 <TextBlock Text="AuroraDesk" Style="{StaticResource TitleTextStyle}" VerticalAlignment="Center"/>
             </StackPanel>
-            <TextBox x:Name="SearchBox"
-                     Width="320"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center"
-                     PlaceholderText="搜索壁纸"
-                     TextChanged="OnSearchTextChanged"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                <TextBox x:Name="SearchBox"
+                         Width="320"
+                         PlaceholderText="搜索壁纸"
+                         TextChanged="OnSearchTextChanged"/>
+                <Button x:Name="AddButton" Click="OnAddWallpaperClicked" ToolTipService.ToolTip="添加壁纸">
+                    <SymbolIcon Symbol="Add"/>
+                </Button>
+            </StackPanel>
         </Grid>
 
         <NavigationView x:Name="NavView" Grid.Row="1" IsBackButtonVisible="Collapsed" SelectionChanged="OnNavigationSelectionChanged">

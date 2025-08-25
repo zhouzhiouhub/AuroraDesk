@@ -71,11 +71,10 @@ namespace AuroraDesk.Pages
                 }
                 if (!string.IsNullOrEmpty(html))
                 {
-                    var thumbPath = FirstExisting(
-                        Path.Combine(dir, "thumbnail.jpg"),
-                        Path.Combine(dir, "preview.gif"),
-                        Path.Combine(baseDir, "Library", "wallpapers", "static", "gral.png")
-                    );
+                    var thumbPath = FindThumbnailForDir(dir)
+                        ?? FirstExisting(
+                            Path.Combine(baseDir, "Library", "wallpapers", "static", "gral.png")
+                        );
                     _items.Add(new WallpaperItem
                     {
                         Title = Path.GetFileName(dir),
@@ -123,6 +122,28 @@ namespace AuroraDesk.Pages
                 if (File.Exists(p)) return p;
             }
             return null;
+        }
+
+        private static string? FindThumbnailForDir(string dir)
+        {
+            // 1) 常见命名优先
+            var preferred = new[]
+            {
+                "thumbnail.jpg","thumbnail.png","preview.gif","preview.jpg","preview.png",
+                "logo.png","logo.jpg","cover.jpg","cover.png",
+                Path.Combine("lively_theme","thumbnail.jpg"),
+                Path.Combine("lively_theme","background.jpg")
+            };
+            foreach (var name in preferred)
+            {
+                var p = Path.Combine(dir, name);
+                if (File.Exists(p)) return p;
+            }
+
+            // 2) 递归寻找任意图片
+            var any = Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories)
+                .FirstOrDefault(f => IsImageFile(f));
+            return any;
         }
 
         private void WallpaperList_ItemClick(object sender, ItemClickEventArgs e)
