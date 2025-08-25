@@ -1,1 +1,27 @@
 AuroraDesk/AuroraDesk/Library/wallpapers/gif/
+# VS/VSCode
+.vs/
+.vscode/
+
+# Build outputs
+bin/
+obj/
+**/bin/
+**/obj/
+Debug/
+Release/
+
+# User-specific
+*.user
+*.suo
+*.userosscache
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Others
+*.cache
+*.log
+
