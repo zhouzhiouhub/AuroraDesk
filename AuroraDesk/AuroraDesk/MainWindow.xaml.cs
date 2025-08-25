@@ -4,9 +4,11 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using AuroraDesk.Core;
 using AuroraDesk.Models;
 using System.Linq;
+using AuroraDesk.Pages;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -18,10 +20,7 @@ namespace AuroraDesk
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        private readonly List<WallpaperItem> _items = new();
-        private static readonly string[] ImageExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
-        private static bool IsImageFile(string path) => ImageExtensions.Contains(Path.GetExtension(path).ToLowerInvariant());
-        private static bool IsHtmlFile(string path) { var ext = Path.GetExtension(path).ToLowerInvariant(); return ext == ".html" || ext == ".htm"; }
+        private GalleryPage? _galleryPage;
 
         public MainWindow()
         {
@@ -29,17 +28,13 @@ namespace AuroraDesk
             this.ExtendsContentIntoTitleBar = true;
             this.SetTitleBar(AppTitleBar);
 
-            // 固定初始大小 800x600
-            Win32Window.SetSize(this, 800, 600);
-
-            // 正常显示（可按需改成最大化/最小化）
+            Win32Window.SetSize(this, 900, 640);
             Win32Window.Show(this, NativeMethods.SW_SHOWNORMAL);
-
-            // 设置窗口左上角图标为项目 Logo（优先 .ico，回退 .png）
             TrySetWindowIcon();
 
-            LoadWallpapers();
-            WallpaperList.ItemsSource = _items;
+            // 默认进入图库页
+            NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == "Gallery");
+            NavigateTo("Gallery");
         }
 
         // 示例：最大化窗口
@@ -75,119 +70,63 @@ namespace AuroraDesk
             Win32Window.Show(this, NativeMethods.SW_SHOWMINIMIZED);
         }
 
-        private void LoadWallpapers()
+        // MainWindow 不再直接加载壁纸（改由 GalleryPage）。
+
+        // ======= 事件：导航/搜索 =======
+        private void OnNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            var baseDir = AppContext.BaseDirectory;
-            var wpRoot = Path.Combine(baseDir, "Library", "wallpapers");
-            if (!Directory.Exists(wpRoot)) return;
-
-            // 1) 扫描子目录（支持 LivelyInfo、html、图片/gif）
-            foreach (var dir in Directory.GetDirectories(wpRoot))
+            if (args.SelectedItem is NavigationViewItem item)
             {
-                // 优先支持 LivelyInfo.json
-                var livelyInfo = Path.Combine(dir, "LivelyInfo.json");
-                if (File.Exists(livelyInfo))
-                {
-                    try
-                    {
-                        using var fs = File.OpenRead(livelyInfo);
-                        using var doc = JsonDocument.Parse(fs);
-                        var root = doc.RootElement;
-                        var title = root.TryGetProperty("Title", out var t) ? t.GetString() ?? Path.GetFileName(dir) : Path.GetFileName(dir);
-                        var desc = root.TryGetProperty("Desc", out var d) ? d.GetString() ?? string.Empty : string.Empty;
-                        var thumb = root.TryGetProperty("Thumbnail", out var th) ? th.GetString() : null;
-                        var fileName = root.TryGetProperty("FileName", out var f) ? f.GetString() : null;
-
-                        var item = new WallpaperItem
-                        {
-                            Title = title,
-                            Description = desc,
-                            ThumbnailPath = thumb != null ? Path.Combine(dir, thumb) : string.Empty,
-                            LaunchPath = fileName != null ? Path.Combine(dir, fileName) : string.Empty
-                        };
-
-                        if (File.Exists(item.LaunchPath))
-                        {
-                            _items.Add(item);
-                            continue;
-                        }
-                    }
-                    catch { }
-                }
-
-                // 回退A：寻找*.html
-                var html = Directory.GetFiles(dir, "*.htm*").FirstOrDefault();
-                if (string.IsNullOrEmpty(html))
-                {
-                    var indexHtml = Path.Combine(dir, "index.html");
-                    if (File.Exists(indexHtml)) html = indexHtml;
-                }
-                if (!string.IsNullOrEmpty(html))
-                {
-                    var thumbPath = FirstExisting(
-                        Path.Combine(dir, "thumbnail.jpg"),
-                        Path.Combine(dir, "preview.gif"),
-                        Path.Combine(baseDir, "Library", "wallpapers", "static", "gral.png")
-                    );
-                    _items.Add(new WallpaperItem
-                    {
-                        Title = Path.GetFileName(dir),
-                        Description = string.Empty,
-                        ThumbnailPath = thumbPath ?? string.Empty,
-                        LaunchPath = html
-                    });
-                    continue;
-                }
-
-                // 回退B：寻找图片/gif
-                var firstImage = Directory.EnumerateFiles(dir)
-                    .FirstOrDefault(f => IsImageFile(f));
-                if (!string.IsNullOrEmpty(firstImage))
-                {
-                    var thumb = firstImage;
-                    _items.Add(new WallpaperItem
-                    {
-                        Title = Path.GetFileName(dir),
-                        Description = string.Empty,
-                        ThumbnailPath = thumb,
-                        LaunchPath = firstImage
-                    });
-                }
-            }
-
-            // 2) 扫描根目录下的文件（html、gif、图片）
-            foreach (var file in Directory.GetFiles(wpRoot))
-            {
-                if (!(IsHtmlFile(file) || IsImageFile(file))) continue;
-
-                var title = Path.GetFileNameWithoutExtension(file);
-                var thumb = IsImageFile(file) ? file : Path.Combine(baseDir, "Library", "wallpapers", "static", "gral.png");
-                if (!File.Exists(thumb)) thumb = file; // 兜底
-
-                _items.Add(new WallpaperItem
-                {
-                    Title = title,
-                    Description = string.Empty,
-                    ThumbnailPath = thumb,
-                    LaunchPath = file
-                });
+                var tag = (string)item.Tag;
+                NavigateTo(tag);
             }
         }
 
-        private void WallpaperList_ItemClick(object sender, ItemClickEventArgs e)
+        private void NavigateTo(string tag)
         {
-            if (e.ClickedItem is WallpaperItem item && File.Exists(item.LaunchPath))
+            // 搜索框仅对图库有效：非图库时禁用并清空
+            var isGallery = tag == "Gallery";
+            SearchBox.IsEnabled = isGallery;
+            if (!isGallery) SearchBox.Text = string.Empty;
+
+            if (tag == "Gallery")
             {
-                var path = item.LaunchPath;
-                string toOpen = path;
-                if (IsImageFile(path))
-                {
-                    toOpen = CreateImageWrapperHtml(path);
-                }
-                var uri = new Uri(toOpen);
-                WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+                _galleryPage ??= new GalleryPage();
+                ContentFrame.Content = _galleryPage;
+            }
+            else if (tag == "Settings")
+            {
+                ContentFrame.Content = CreateSettingsPlaceholder();
+            }
+            else if (tag == "Help")
+            {
+                ContentFrame.Content = CreateHelpPlaceholder();
             }
         }
+
+        private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+        {
+            ApplyFilter(SearchBox.Text);
+        }
+
+        private void ApplyFilter(string? keyword)
+        {
+            _galleryPage?.ApplyFilter(keyword);
+        }
+
+        // ======= UI 构造（简单占位） =======
+
+        private FrameworkElement CreateSettingsPlaceholder()
+        {
+            return new TextBlock { Text = "设置（规划）：全屏暂停、帧率上限、自启动等", Opacity = 0.8, Margin = new Thickness(16) };
+        }
+
+        private FrameworkElement CreateHelpPlaceholder()
+        {
+            return new TextBlock { Text = "帮助：快速上手 / 常见问题 / 日志位置", Opacity = 0.8, Margin = new Thickness(16) };
+        }
+
+        // 壁纸点击处理已在 GalleryPage 中实现
 
         private static string? FirstExisting(params string[] paths)
         {

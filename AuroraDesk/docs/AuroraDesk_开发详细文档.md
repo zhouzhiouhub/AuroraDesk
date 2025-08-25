@@ -40,6 +40,36 @@ AuroraDesk (WinUI 3 应用)
 
 ---
 
+## 2.1 应用页面与导航
+
+- 页面：`图库`、`设置`、`帮助`（三主页）+ 全局 `搜索`。
+- 导航：顶部或侧边栏标签切换；搜索框常驻标题栏并作用于图库过滤。
+
+状态与存储：
+- 当前页、搜索关键字与最近操作通过 UI 层状态管理；
+- 持久化设置写入本地（JSON/首选项），应用启动时加载；
+- 壁纸索引来源于 `Library/wallpapers/` 与用户导入目录。
+
+交互概要：
+- 图库：展示卡片、导入、设为壁纸、删除、刷新；
+- 搜索：对 `WallpaperItem.name` 执行不区分大小写的子串匹配；
+- 设置：性能与行为开关（全屏暂停、帧率上限、自启动、声音）；
+- 帮助：快速上手、常见问题、日志定位与反馈链接。
+
+数据流（示意）：
+```
+User → UI(Gallery/Search/Settings/Help)
+   → WallpaperManager(Core) ↔ DesktopHost/Win32Window
+   → Sources(规划：Web/Video/Shader)
+   → Models.WallpaperItem（索引/绑定）
+```
+
+错误与恢复：
+- Explorer 重启或显卡 TDR → `DesktopHost` 负责重新挂载并通知 UI；
+- 素材缺失 → 回退到静态壁纸并在帮助页提示排查步骤。
+
+---
+
 ## 3. 关键流程
 
 - 桌面挂载（WorkerW）：
