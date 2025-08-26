@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.System;
 using AuroraDesk.Models;
 using AuroraDesk.Core;
 
@@ -188,6 +189,76 @@ namespace AuroraDesk.Pages
                        "<img src=\"" + new Uri(imagePath).AbsoluteUri + "\" alt=\"wallpaper\"></body></html>";
             File.WriteAllText(wrapperPath, html);
             return wrapperPath;
+        }
+
+        private void OnSetAsWallpaperClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
+            {
+                var path = item.LaunchPath;
+                string toOpen = path;
+                if (IsImageFile(path))
+                {
+                    toOpen = CreateImageWrapperHtml(path);
+                }
+                var uri = new Uri(toOpen);
+                WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+            }
+        }
+
+        private void OnPreviewClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
+            {
+                var path = item.LaunchPath;
+                string toOpen = path;
+                if (IsImageFile(path))
+                {
+                    toOpen = CreateImageWrapperHtml(path);
+                }
+                var uri = new Uri(toOpen);
+                WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+            }
+        }
+
+        private async void OnOpenLocationClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
+            {
+                var path = item.LaunchPath;
+                try
+                {
+                    var folder = Path.GetDirectoryName(path);
+                    if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+                    {
+                        await Launcher.LaunchFolderPathAsync(folder);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private void OnDeleteClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
+            {
+                try
+                {
+                    var path = item.LaunchPath;
+                    var dir = Path.GetDirectoryName(path);
+                    if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                    {
+                        Directory.Delete(dir, true);
+                    }
+                    else if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                    }
+                }
+                catch { }
+
+                ReloadAll();
+            }
         }
     }
 }

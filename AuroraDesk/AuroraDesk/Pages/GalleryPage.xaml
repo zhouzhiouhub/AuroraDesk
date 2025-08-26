@@ -29,15 +29,39 @@
                   ItemContainerStyle="{StaticResource GalleryItemStyle}">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:WallpaperItem">
-                    <StackPanel>
-                        <Image Source="{x:Bind ThumbnailPath}"
-                               Stretch="UniformToFill" Height="120"/>
-                        <TextBlock Text="{x:Bind Title}"
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Image Source="{x:Bind ThumbnailPath}"
+                                   Stretch="UniformToFill" Height="120"/>
+                            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4"
+                                    Background="Transparent" Foreground="White" Padding="8" CornerRadius="4">
+                                <Button.Content>
+                                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE712;"/>
+                                </Button.Content>
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="设为壁纸" Icon="Accept" Click="OnSetAsWallpaperClick" Tag="{x:Bind}"/>
+                                        <MenuFlyoutItem Text="预览壁纸" Icon="View" Click="OnPreviewClick" Tag="{x:Bind}"/>
+                                        <MenuFlyoutItem Text="打开文件所在位置" Icon="OpenLocal" Click="OnOpenLocationClick" Tag="{x:Bind}"/>
+                                        <MenuFlyoutSeparator/>
+                                        <MenuFlyoutItem Text="删除壁纸" Icon="Delete" Click="OnDeleteClick" Tag="{x:Bind}"/>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+
+                        <TextBlock Grid.Row="1" Text="{x:Bind Title}"
                                    TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{x:Bind Description}"
+                        <TextBlock Grid.Row="2" Text="{x:Bind Description}"
                                    Opacity="0.7" FontSize="12"
                                    TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
+                    </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>

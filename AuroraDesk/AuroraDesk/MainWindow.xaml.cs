@@ -145,13 +145,27 @@ namespace AuroraDesk
             picker.FileTypeFilter.Add(".jpg");
             picker.FileTypeFilter.Add(".jpeg");
             picker.FileTypeFilter.Add(".gif");
+            picker.FileTypeFilter.Add(".bmp");
+            picker.FileTypeFilter.Add(".webp");
 
             var file = await picker.PickSingleFileAsync();
             if (file == null) return;
 
-            // 简单处理：复制到 Library/wallpapers/Downloads 下并刷新
+            // 自定义壁纸：为每个文件创建独立目录（以文件名区分），避免同目录仅识别一项
             var baseDir = AppContext.BaseDirectory;
-            var targetDir = Path.Combine(baseDir, "Library", "wallpapers", "Downloads");
+            var wpRoot = Path.Combine(baseDir, "Library", "wallpapers");
+            Directory.CreateDirectory(wpRoot);
+
+            var baseName = Path.GetFileNameWithoutExtension(file.Name);
+            var safeBase = SanitizeDirectoryName(baseName);
+            var dirName = $"User_{safeBase}";
+            var targetDir = Path.Combine(wpRoot, dirName);
+            int suffix = 1;
+            while (Directory.Exists(targetDir))
+            {
+                dirName = $"User_{safeBase}_{suffix++}";
+                targetDir = Path.Combine(wpRoot, dirName);
+            }
             Directory.CreateDirectory(targetDir);
             var targetPath = Path.Combine(targetDir, file.Name);
             using (var src = await file.OpenStreamForReadAsync())
@@ -163,6 +177,15 @@ namespace AuroraDesk
             // 让图库刷新（重新创建页面或触发其内部重载）
             _galleryPage = new GalleryPage();
             ContentFrame.Content = _galleryPage;
+        }
+
+        private static string SanitizeDirectoryName(string name)
+        {
+            var invalid = Path.GetInvalidFileNameChars();
+            var sanitizedChars = name.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
+            var sanitized = new string(sanitizedChars).Trim('_', ' ', '.');
+            if (string.IsNullOrEmpty(sanitized)) return "Imported";
+            return sanitized;
         }
 
         // 壁纸点击处理已在 GalleryPage 中实现
