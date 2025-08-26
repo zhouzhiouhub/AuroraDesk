@@ -46,8 +46,11 @@
                                     <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE712;"/>
                                 </Button.Content>
                                 <Button.Flyout>
-                                    <MenuFlyout>
+                                    <MenuFlyout Opening="OnGalleryItemFlyoutOpening">
                                         <MenuFlyoutItem Text="设为壁纸" Icon="Accept" Click="OnSetAsWallpaperClick" Tag="{x:Bind}"/>
+                                        <MenuFlyoutSubItem Text="设为壁纸到显示器"/>
+                                        <MenuFlyoutItem Text="为所有显示器设置" Icon="Accept" Click="OnSetAsWallpaperAllClick" Tag="{x:Bind}"/>
+                                        <MenuFlyoutSeparator/>
                                         <MenuFlyoutItem Text="预览壁纸" Icon="View" Click="OnPreviewClick" Tag="{x:Bind}"/>
                                         <MenuFlyoutItem Text="打开文件所在位置" Icon="OpenLocal" Click="OnOpenLocationClick" Tag="{x:Bind}"/>
                                         <MenuFlyoutSeparator/>

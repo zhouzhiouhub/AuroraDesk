@@ -32,8 +32,23 @@
                          Width="320"
                          PlaceholderText="搜索壁纸"
                          TextChanged="OnSearchTextChanged"/>
-                <Button x:Name="AddButton" Click="OnAddWallpaperClicked" ToolTipService.ToolTip="添加壁纸">
-                    <SymbolIcon Symbol="Add"/>
+                <Button x:Name="AddButton" Click="OnAddWallpaperClicked" ToolTipService.ToolTip="添加壁纸" Width="40" Height="40" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE710;" FontSize="24" Foreground="Black"/>
+                </Button>
+                <Button x:Name="MonitorButton" ToolTipService.ToolTip="显示器" Width="40" Height="40" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="OnMonitorButtonClick">
+                    <Grid>
+                        <FontIcon x:Name="MonitorGlyph" FontFamily="Segoe MDL2 Assets" Glyph="&#xE7F4;" FontSize="24" Foreground="Black"/>
+                        <TextBlock x:Name="MonitorNumber"
+                                   Text="1"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Margin="0,-4,0,0"
+                                   Foreground="{Binding Foreground, ElementName=MonitorGlyph}"
+                                   Opacity="{Binding Opacity, ElementName=MonitorGlyph}"
+                                   IsHitTestVisible="False"/>
+                    </Grid>
                 </Button>
             </StackPanel>
         </Grid>

@@ -17,6 +17,17 @@ namespace AuroraDesk.Pages
         private readonly ObservableCollection<WallpaperItem> _items = new();
         private string? _lastKeyword;
 
+        private sealed class MonitorApplyContext
+        {
+            public WallpaperItem Item { get; }
+            public string DeviceName { get; }
+            public MonitorApplyContext(WallpaperItem item, string deviceName)
+            {
+                Item = item;
+                DeviceName = deviceName;
+            }
+        }
+
         public GalleryPage()
         {
             this.InitializeComponent();
@@ -151,16 +162,113 @@ namespace AuroraDesk.Pages
 
         private void WallpaperList_ItemClick(object sender, ItemClickEventArgs e)
         {
-            if (e.ClickedItem is WallpaperItem item && File.Exists(item.LaunchPath))
+            try
             {
-                var path = item.LaunchPath;
+                if (e.ClickedItem is WallpaperItem item && File.Exists(item.LaunchPath))
+                {
+                    var path = item.LaunchPath;
+                    string toOpen = path;
+                    if (IsImageFile(path))
+                    {
+                        toOpen = CreateImageWrapperHtml(path);
+                    }
+                    var uri = new Uri(toOpen);
+                    WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+                }
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorAsync("设置壁纸出错", ex);
+            }
+        }
+
+        private void OnGalleryItemFlyoutOpening(object sender, object e)
+        {
+            if (sender is not MenuFlyout flyout)
+            {
+                return;
+            }
+
+            // 找到“设为壁纸到显示器”的子菜单
+            var sub = flyout.Items.OfType<MenuFlyoutSubItem>().FirstOrDefault();
+            if (sub == null)
+            {
+                return;
+            }
+
+            // 从 Tag 取出当前 WallpaperItem
+            var item = sub.Tag as WallpaperItem;
+            if (item == null)
+            {
+                // 尝试从其它菜单项获取
+                var anyWithTag = flyout.Items.OfType<MenuFlyoutItem>().FirstOrDefault(i => i.Tag is WallpaperItem);
+                item = anyWithTag?.Tag as WallpaperItem;
+            }
+            if (item == null)
+            {
+                return;
+            }
+
+            sub.Items.Clear();
+            var monitors = MonitorManager.GetAll();
+            foreach (var m in monitors)
+            {
+                var orient = m.Bounds.Width >= m.Bounds.Height ? "横屏" : "竖屏";
+                var label = m.Primary
+                    ? $"主显示器 ({m.Bounds.Width}x{m.Bounds.Height}, {orient})"
+                    : $"{m.DeviceName} ({m.Bounds.Width}x{m.Bounds.Height}, {orient})";
+                var mi = new MenuFlyoutItem { Text = label };
+                mi.Tag = new MonitorApplyContext(item, m.DeviceName);
+                mi.Click += OnSetWallpaperForMonitorClick;
+                sub.Items.Add(mi);
+            }
+        }
+
+        private void OnSetWallpaperForMonitorClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is not MenuFlyoutItem mi) return;
+                if (mi.Tag is not MonitorApplyContext ctx) return;
+
+                var path = ctx.Item.LaunchPath;
+                if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
                 string toOpen = path;
                 if (IsImageFile(path))
                 {
                     toOpen = CreateImageWrapperHtml(path);
                 }
                 var uri = new Uri(toOpen);
-                WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+                WallpaperManager.InitializeOrAttachForMonitor(uri, ctx.DeviceName);
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorAsync("设置壁纸到指定显示器出错", ex);
+            }
+        }
+
+        private void OnSetAsWallpaperAllClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is not MenuFlyoutItem mi) return;
+                if (mi.Tag is not WallpaperItem item) return;
+
+                var path = item.LaunchPath;
+                if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+                string toOpen = path;
+                if (IsImageFile(path))
+                {
+                    toOpen = CreateImageWrapperHtml(path);
+                }
+                var uri = new Uri(toOpen);
+                WallpaperManager.InitializeOrAttachForAllMonitors(uri);
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorAsync("为所有显示器设置壁纸出错", ex);
             }
         }
 
@@ -196,31 +304,45 @@ namespace AuroraDesk.Pages
 
         private void OnSetAsWallpaperClick(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
+            try
             {
-                var path = item.LaunchPath;
-                string toOpen = path;
-                if (IsImageFile(path))
+                if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
                 {
-                    toOpen = CreateImageWrapperHtml(path);
+                    var path = item.LaunchPath;
+                    string toOpen = path;
+                    if (IsImageFile(path))
+                    {
+                        toOpen = CreateImageWrapperHtml(path);
+                    }
+                    var uri = new Uri(toOpen);
+                    WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
                 }
-                var uri = new Uri(toOpen);
-                WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorAsync("设置壁纸出错", ex);
             }
         }
 
         private void OnPreviewClick(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
+            try
             {
-                var path = item.LaunchPath;
-                string toOpen = path;
-                if (IsImageFile(path))
+                if (sender is MenuFlyoutItem m && m.Tag is WallpaperItem item)
                 {
-                    toOpen = CreateImageWrapperHtml(path);
+                    var path = item.LaunchPath;
+                    string toOpen = path;
+                    if (IsImageFile(path))
+                    {
+                        toOpen = CreateImageWrapperHtml(path);
+                    }
+                    var uri = new Uri(toOpen);
+                    WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
                 }
-                var uri = new Uri(toOpen);
-                WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorAsync("预览壁纸出错", ex);
             }
         }
 
@@ -263,6 +385,26 @@ namespace AuroraDesk.Pages
                 _items.Remove(item);
                 ApplyFilter(_lastKeyword);
             }
+        }
+
+        private async System.Threading.Tasks.Task ShowErrorAsync(string title, Exception ex)
+        {
+            try
+            {
+                var dlg = new ContentDialog
+                {
+                    Title = title,
+                    Content = new ScrollViewer
+                    {
+                        Content = new TextBlock { Text = ex.ToString(), TextWrapping = TextWrapping.Wrap },
+                        MaxHeight = 320
+                    },
+                    PrimaryButtonText = "确定",
+                    XamlRoot = this.XamlRoot
+                };
+                await dlg.ShowAsync();
+            }
+            catch { }
         }
     }
 }
