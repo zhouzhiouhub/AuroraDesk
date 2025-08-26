@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -13,7 +14,8 @@ namespace AuroraDesk.Pages
 {
     public sealed partial class GalleryPage : Page
     {
-        private readonly List<WallpaperItem> _items = new();
+        private readonly ObservableCollection<WallpaperItem> _items = new();
+        private string? _lastKeyword;
 
         public GalleryPage()
         {
@@ -165,6 +167,7 @@ namespace AuroraDesk.Pages
         public void ApplyFilter(string? keyword)
         {
             IEnumerable<WallpaperItem> src = _items;
+            _lastKeyword = keyword;
             var k = (keyword ?? string.Empty).Trim();
             if (!string.IsNullOrEmpty(k))
             {
@@ -177,7 +180,7 @@ namespace AuroraDesk.Pages
         {
             _items.Clear();
             LoadWallpapers();
-            ApplyFilter(null);
+            ApplyFilter(_lastKeyword);
         }
 
         private static string CreateImageWrapperHtml(string imagePath)
@@ -257,7 +260,8 @@ namespace AuroraDesk.Pages
                 }
                 catch { }
 
-                ReloadAll();
+                _items.Remove(item);
+                ApplyFilter(_lastKeyword);
             }
         }
     }

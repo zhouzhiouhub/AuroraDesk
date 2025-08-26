@@ -39,8 +39,9 @@
                         <Grid>
                             <Image Source="{x:Bind ThumbnailPath}"
                                    Stretch="UniformToFill" Height="120"/>
-                            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4"
-                                    Background="Transparent" Foreground="White" Padding="8" CornerRadius="4">
+                            <Button HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="4"
+                                    Background="Transparent" BorderBrush="Transparent" BorderThickness="0"
+                                    Foreground="White" Padding="8" CornerRadius="4">
                                 <Button.Content>
                                     <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE712;"/>
                                 </Button.Content>
