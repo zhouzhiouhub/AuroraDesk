@@ -33,10 +33,23 @@ namespace AuroraDesk
             InitializeComponent();
             this.ExtendsContentIntoTitleBar = true;
             this.SetTitleBar(AppTitleBar);
+            this.Title = "AuroraDesk";
+            this.AppWindow.Title = "AuroraDesk";
 
             Win32Window.SetSize(this, 900, 640);
             Win32Window.Show(this, NativeMethods.SW_SHOWNORMAL);
             TrySetWindowIcon();
+
+            // 将主窗口当前尺寸同步给预览窗口上限
+            WallpaperManager.SetPreviewMaxSize(this.AppWindow.Size.Width, this.AppWindow.Size.Height);
+            this.AppWindow.Changed += (_, args) =>
+            {
+                try
+                {
+                    WallpaperManager.SetPreviewMaxSize(this.AppWindow.Size.Width, this.AppWindow.Size.Height);
+                }
+                catch { }
+            };
 
             // 默认进入图库页
             NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == "Gallery");
@@ -256,6 +269,8 @@ namespace AuroraDesk
 
             // 更新按钮上的编号
             UpdateMonitorNumberFor(m);
+            // 将该显示器作为预览的首选显示器
+            WallpaperManager.PreferredPreviewMonitorDeviceName = m.DeviceName;
         }
 
         private async void OnMonitorButtonClick(object sender, RoutedEventArgs e)
@@ -356,6 +371,7 @@ namespace AuroraDesk
                         currentSelected.BorderBrush = new SolidColorBrush(Colors.Black);
                         UpdateMonitorNumberFor(m);
                         SetInfo(m);
+                        WallpaperManager.PreferredPreviewMonitorDeviceName = m.DeviceName;
                     };
 
                     Canvas.SetLeft(border, left);

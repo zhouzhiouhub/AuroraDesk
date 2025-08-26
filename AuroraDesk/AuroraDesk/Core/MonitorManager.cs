@@ -15,7 +15,7 @@ internal static class MonitorManager
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int left, top, right, bottom; }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct MONITORINFOEX
     {
         public int cbSize;
@@ -26,13 +26,14 @@ internal static class MonitorManager
         public string szDevice;
     }
 
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, ref RECT lprcMonitor, IntPtr dwData);
 
-    [DllImport("user32.dll")] private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
-    [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
 
     // Fallback: EnumDisplayDevices / EnumDisplaySettingsEx
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct DISPLAY_DEVICE
     {
         public int cb;
@@ -47,7 +48,7 @@ internal static class MonitorManager
         public string DeviceKey;
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct DEVMODE
     {
         private const int CCHDEVICENAME = 32;
@@ -86,10 +87,10 @@ internal static class MonitorManager
         public int dmPanningHeight;
     }
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool EnumDisplayDevices(string? lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool EnumDisplaySettingsEx(string lpszDeviceName, int iModeNum, ref DEVMODE lpDevMode, uint dwFlags);
 
     private const int EDD_GET_DEVICE_INTERFACE_NAME = 0x00000001;
@@ -100,7 +101,7 @@ internal static class MonitorManager
     public static IReadOnlyList<MonitorInfo> GetAll()
     {
         var list = new List<MonitorInfo>();
-        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMon, IntPtr hdc, ref RECT r, IntPtr dw) =>
+        MonitorEnumProc enumProc = (IntPtr hMon, IntPtr hdc, ref RECT r, IntPtr dw) =>
         {
             var mi = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
             if (GetMonitorInfo(hMon, ref mi))
@@ -113,9 +114,11 @@ internal static class MonitorManager
                 list.Add(new MonitorInfo(mi.szDevice, b, primary, hMon));
             }
             return true;
-        }, IntPtr.Zero);
+        };
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, enumProc, IntPtr.Zero);
+        GC.KeepAlive(enumProc);
         
-        if (list.Count <= 1)
+        if (list.Count == 0)
         {
             var fallback = GetAllViaDisplayDevices();
             if (fallback.Count > 0)

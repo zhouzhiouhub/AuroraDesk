@@ -27,7 +27,7 @@ public static class DesktopHost
             }
 
             IntPtr workerw = IntPtr.Zero;
-            bool found = EnumWindows((top, _) =>
+            EnumWindowsProc enumProc = (top, _) =>
             {
                 var shellView = FindWindowEx(top, IntPtr.Zero, "SHELLDLL_DefView", null);
                 if (shellView != IntPtr.Zero)
@@ -36,7 +36,9 @@ public static class DesktopHost
                     return false; // 找到就停止枚举
                 }
                 return true; // 继续枚举
-            }, IntPtr.Zero);
+            };
+            bool found = EnumWindows(enumProc, IntPtr.Zero);
+            System.GC.KeepAlive(enumProc);
 
             if (workerw == IntPtr.Zero)
             {

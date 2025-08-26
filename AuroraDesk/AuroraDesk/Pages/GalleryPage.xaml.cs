@@ -189,7 +189,7 @@ namespace AuroraDesk.Pages
                 return;
             }
 
-            // 找到“设为壁纸到显示器”的子菜单
+            // 第一个子菜单：设为壁纸到显示器
             var sub = flyout.Items.OfType<MenuFlyoutSubItem>().FirstOrDefault();
             if (sub == null)
             {
@@ -221,6 +221,25 @@ namespace AuroraDesk.Pages
                 mi.Tag = new MonitorApplyContext(item, m.DeviceName);
                 mi.Click += OnSetWallpaperForMonitorClick;
                 sub.Items.Add(mi);
+            }
+
+            // 第二个子菜单：预览到显示器
+            var previewSub = flyout.Items.OfType<MenuFlyoutSubItem>().Skip(1).FirstOrDefault();
+            if (previewSub != null)
+            {
+                previewSub.Items.Clear();
+                previewSub.Tag = item;
+                foreach (var m in monitors)
+                {
+                    var orient = m.Bounds.Width >= m.Bounds.Height ? "横屏" : "竖屏";
+                    var label = m.Primary
+                        ? $"主显示器 ({m.Bounds.Width}x{m.Bounds.Height}, {orient})"
+                        : $"{m.DeviceName} ({m.Bounds.Width}x{m.Bounds.Height}, {orient})";
+                    var mi = new MenuFlyoutItem { Text = label };
+                    mi.Tag = new MonitorApplyContext(item, m.DeviceName);
+                    mi.Click += OnPreviewForMonitorClick;
+                    previewSub.Items.Add(mi);
+                }
             }
         }
 
@@ -337,12 +356,43 @@ namespace AuroraDesk.Pages
                         toOpen = CreateImageWrapperHtml(path);
                     }
                     var uri = new Uri(toOpen);
-                    WallpaperManager.InitializeOrAttachDesktopWallpaper(uri);
+                    var prefer = WallpaperManager.PreferredPreviewMonitorDeviceName;
+                    if (!string.IsNullOrEmpty(prefer))
+                    {
+                        WallpaperManager.ShowPreviewForMonitor(uri, prefer);
+                    }
+                    else
+                    {
+                        WallpaperManager.ShowPreview(uri);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _ = ShowErrorAsync("预览壁纸出错", ex);
+            }
+        }
+
+        private void OnPreviewForMonitorClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is not MenuFlyoutItem mi) return;
+                if (mi.Tag is not MonitorApplyContext ctx) return;
+                var path = ctx.Item.LaunchPath;
+                if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+                string toOpen = path;
+                if (IsImageFile(path))
+                {
+                    toOpen = CreateImageWrapperHtml(path);
+                }
+                var uri = new Uri(toOpen);
+                WallpaperManager.ShowPreviewForMonitor(uri, ctx.DeviceName);
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorAsync("预览到指定显示器出错", ex);
             }
         }
 

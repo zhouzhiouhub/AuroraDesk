@@ -21,6 +21,24 @@ namespace AuroraDesk.Core
         // 多显示器：按设备名管理宿主
         private static readonly Dictionary<string, (Window Window, WebView2 WebView)> s_hosts = new();
 
+        // 预览窗口（不进行重父化，避免系统级句柄问题）
+        private static Window? s_previewWindow;
+        private static WebView2? s_previewWebView;
+
+        // 当前首选预览显示器（由主窗口的显示器选择界面更新）
+        public static string? PreferredPreviewMonitorDeviceName { get; set; }
+
+        // 预览窗口的最大尺寸（由主窗口同步，限制预览不超过主窗口大小）
+        private static int s_previewMaxWidth = 1000;
+        private static int s_previewMaxHeight = 700;
+        private static double s_previewDesiredScale = 1.0;
+
+        public static void SetPreviewMaxSize(int maxWidth, int maxHeight)
+        {
+            if (maxWidth > 0) s_previewMaxWidth = maxWidth;
+            if (maxHeight > 0) s_previewMaxHeight = maxHeight;
+        }
+
         public static void InitializeOrAttachDesktopWallpaper(Uri? initialSource)
         {
             // 仍然以主显示器为目标，保持旧行为
@@ -119,6 +137,223 @@ namespace AuroraDesk.Core
                 HostWindow = w;
                 HostWebView = web;
             }
+        }
+
+        /// <summary>
+        /// 显示安全预览窗口：普通 WinUI 窗口承载 WebView2，不挂载到 WorkerW。
+        /// 再次调用会复用窗口并切换 Source。
+        /// </summary>
+        public static void ShowPreview(Uri? initialSource)
+        {
+            // 复用已有窗口
+            if (s_previewWindow != null && s_previewWebView != null)
+            {
+                if (initialSource != null)
+                {
+                    s_previewWebView.Source = initialSource;
+                }
+                // 重算缩放：使用首选或主显示器
+                try
+                {
+                    var monitors = MonitorManager.GetAll();
+                    var target = (!string.IsNullOrEmpty(PreferredPreviewMonitorDeviceName)
+                        ? monitors.FirstOrDefault(m => m.DeviceName == PreferredPreviewMonitorDeviceName)
+                        : null) ?? monitors.FirstOrDefault(m => m.Primary) ?? monitors.FirstOrDefault();
+                    if (target != null)
+                    {
+                        var size = s_previewWindow.AppWindow.Size;
+                        var scale = Math.Min(
+                            Math.Max(0.1, (double)size.Width / Math.Max(1, target.Bounds.Width)),
+                            Math.Max(0.1, (double)size.Height / Math.Max(1, target.Bounds.Height))
+                        );
+                        s_previewDesiredScale = Math.Min(1.0, scale);
+                        TryApplyPreviewScale(s_previewWebView, s_previewDesiredScale, size.Width, size.Height, target.Bounds.Width, target.Bounds.Height);
+                    }
+                }
+                catch { }
+                s_previewWindow.Activate();
+                return;
+            }
+
+            var w = new Window();
+            var web = new WebView2();
+            w.Title = "AuroraDesk 预览";
+            try
+            {
+                // 使用与主窗口相同的图标（若存在）
+                var baseDir = AppContext.BaseDirectory;
+                var iconPath = System.IO.Path.Combine(baseDir, "Assets", "AppIcon.ico");
+                if (System.IO.File.Exists(iconPath))
+                {
+                    w.AppWindow.SetIcon(iconPath);
+                }
+            }
+            catch { }
+            if (initialSource != null)
+            {
+                web.Source = initialSource;
+            }
+            w.Content = web;
+
+            // 合理的默认大小并居中到主显示器工作区
+            try
+            {
+                var work = Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea;
+                int width = Math.Max(640, work.Width * 3 / 5);
+                int height = Math.Max(400, work.Height * 3 / 5);
+
+                // 比例缩小，限制不超过主窗口
+                double scale = Math.Min(1.0,
+                    Math.Min((double)s_previewMaxWidth / Math.Max(1, width),
+                             (double)s_previewMaxHeight / Math.Max(1, height)));
+                width = (int)Math.Max(320, width * scale);
+                height = (int)Math.Max(240, height * scale);
+                int x = work.X + (work.Width - width) / 2;
+                int y = work.Y + (work.Height - height) / 2;
+                w.AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
+
+                // 将内容按显示器分辨率比例缩小
+                try
+                {
+                    var target = MonitorManager.GetAll().FirstOrDefault(m => m.Primary) ?? MonitorManager.GetAll().FirstOrDefault();
+                    if (target != null)
+                    {
+                        var contentScale = Math.Min(
+                            Math.Max(0.1, (double)width / Math.Max(1, target.Bounds.Width)),
+                            Math.Max(0.1, (double)height / Math.Max(1, target.Bounds.Height))
+                        );
+                        s_previewDesiredScale = Math.Min(1.0, contentScale);
+                        TryApplyPreviewScale(web, s_previewDesiredScale, width, height, target.Bounds.Width, target.Bounds.Height);
+                    }
+                }
+                catch { }
+            }
+            catch { }
+
+            w.Closed += (_, __) =>
+            {
+                s_previewWebView = null;
+                s_previewWindow = null;
+            };
+
+            w.Activate();
+            s_previewWindow = w;
+            s_previewWebView = web;
+
+            // 若 CoreWebView2 尚未就绪，初始化后再应用缩放
+            try
+            {
+                var size = s_previewWindow.AppWindow.Size;
+                var target = MonitorManager.GetAll().FirstOrDefault(m => m.Primary) ?? MonitorManager.GetAll().FirstOrDefault();
+                if (target != null)
+                {
+                    TryApplyPreviewScale(s_previewWebView, s_previewDesiredScale, size.Width, size.Height, target.Bounds.Width, target.Bounds.Height);
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// 关闭预览窗口（若存在）。
+        /// </summary>
+        public static void ClosePreview()
+        {
+            try
+            {
+                s_previewWindow?.Close();
+            }
+            catch { }
+            finally
+            {
+                s_previewWebView = null;
+                s_previewWindow = null;
+            }
+        }
+
+        /// <summary>
+        /// 在指定显示器上展示预览窗口（按显示器工作区居中，缩放到合适大小）。
+        /// </summary>
+        public static void ShowPreviewForMonitor(Uri? source, string monitorDeviceName)
+        {
+            ShowPreview(source);
+            try
+            {
+                var monitor = MonitorManager.GetAll().FirstOrDefault(m => m.DeviceName == monitorDeviceName);
+                if (monitor == null || s_previewWindow == null) return;
+
+                var b = monitor.Bounds;
+                int width = Math.Max(400, b.Width * 3 / 5);
+                int height = Math.Max(300, b.Height * 3 / 5);
+
+                // 比例缩小，限制不超过主窗口
+                double scale = Math.Min(1.0,
+                    Math.Min((double)s_previewMaxWidth / Math.Max(1, width),
+                             (double)s_previewMaxHeight / Math.Max(1, height)));
+                width = (int)Math.Max(320, width * scale);
+                height = (int)Math.Max(240, height * scale);
+                int x = b.X + (b.Width - width) / 2;
+                int y = b.Y + (b.Height - height) / 2;
+                s_previewWindow.AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
+
+                // 缩放页面内容与显示器分辨率成比例
+                try
+                {
+                    s_previewDesiredScale = Math.Min(1.0, Math.Min(
+                        Math.Max(0.1, (double)width / Math.Max(1, b.Width)),
+                        Math.Max(0.1, (double)height / Math.Max(1, b.Height))));
+                    if (s_previewWebView != null)
+                    {
+                        TryApplyPreviewScale(s_previewWebView, s_previewDesiredScale, width, height, b.Width, b.Height);
+                    }
+                }
+                catch { }
+
+                // 更新标题为“预览 - 设备名 (分辨率)”
+                var orient = b.Width >= b.Height ? "横屏" : "竖屏";
+                s_previewWindow.Title = $"AuroraDesk 预览 - {monitor.DeviceName} ({b.Width}x{b.Height}, {orient})";
+                s_previewWindow.AppWindow.Title = s_previewWindow.Title;
+            }
+            catch { }
+        }
+
+        private static void TryApplyPreviewScale(WebView2 web, double scale, int previewWidth, int previewHeight, int basisWidth, int basisHeight)
+        {
+            if (web == null) return;
+            try
+            {
+                async void Apply()
+                {
+                    // 计算偏移，使缩放后的内容在预览窗口内居中
+                    double offsetX = Math.Max(0, (previewWidth - previewWidth * scale) / 2.0);
+                    double offsetY = Math.Max(0, (previewHeight - previewHeight * scale) / 2.0);
+                    string sx = offsetX.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string sy = offsetY.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string k = scale.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var css = "html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;} " +
+                              "html{transform-origin:0 0;transform:translate(" + sx + "px," + sy + "px) scale(" + k + ");}";
+                    var js = "(function(){try{var s=document.getElementById('auroradesk_preview_scale');if(!s){s=document.createElement('style');s.id='auroradesk_preview_scale';document.documentElement.appendChild(s);}s.textContent='" + css.Replace("\\", "\\\\").Replace("'", "\\'") + "';}catch(e){}})();";
+                    try { await web.ExecuteScriptAsync(js); } catch { }
+                }
+
+                if (web.CoreWebView2 != null)
+                {
+                    _ = web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync("(function(){try{var s=document.getElementById('auroradesk_preview_scale');if(!s){s=document.createElement('style');s.id='auroradesk_preview_scale';document.documentElement.appendChild(s);} }catch(e){}})();");
+                    Apply();
+                }
+                else
+                {
+                    web.CoreWebView2Initialized += (s, e) =>
+                    {
+                        try
+                        {
+                            _ = web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync("(function(){try{var s=document.getElementById('auroradesk_preview_scale');if(!s){s=document.createElement('style');s.id='auroradesk_preview_scale';document.documentElement.appendChild(s);} }catch(e){}})();");
+                            Apply();
+                        }
+                        catch { }
+                    };
+                }
+            }
+            catch { }
         }
 
         public static void SetWallpaper(Uri source)
