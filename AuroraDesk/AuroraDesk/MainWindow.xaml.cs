@@ -283,7 +283,7 @@ namespace AuroraDesk
                 var root = new StackPanel { Spacing = 12 };
                 root.Children.Add(canvas);
 
-                var info = new TextBlock { Opacity = 0.7, Text = "点击方框选择显示器" };
+                var info = new TextBlock { Opacity = 0.85, TextWrapping = TextWrapping.Wrap };
                 root.Children.Add(info);
 
                 var dlg = new ContentDialog
@@ -307,6 +307,17 @@ namespace AuroraDesk
                     .ThenBy(m => m.Bounds.X)
                     .ThenBy(m => m.Bounds.Y)
                     .ToList();
+
+                // 信息更新函数
+                void SetInfo(MonitorInfo mSel)
+                {
+                    var osIndex = TryGetDisplayIndex(mSel.DeviceName);
+                    var orientStr = mSel.Bounds.Width >= mSel.Bounds.Height ? "横屏" : "竖屏";
+                    info.Text = $"显示器: {(osIndex.HasValue ? osIndex.Value.ToString() : mSel.DeviceName)}\n" +
+                               $"主显示器: {(mSel.Primary ? "是" : "否")}\n" +
+                               $"分辨率: {mSel.Bounds.Width} x {mSel.Bounds.Height} ({orientStr})\n" +
+                               $"位置: X={mSel.Bounds.X}, Y={mSel.Bounds.Y}";
+                }
 
                 for (int i = 0; i < ordered.Count; i++)
                 {
@@ -344,12 +355,17 @@ namespace AuroraDesk
                         currentSelected.Tag = currentSelected.BorderBrush;
                         currentSelected.BorderBrush = new SolidColorBrush(Colors.Black);
                         UpdateMonitorNumberFor(m);
+                        SetInfo(m);
                     };
 
                     Canvas.SetLeft(border, left);
                     Canvas.SetTop(border, top);
                     canvas.Children.Add(border);
                 }
+
+                // 初次默认选中主显示器或第一个
+                var defaultSel = ordered.FirstOrDefault(x => x.Primary) ?? ordered.First();
+                SetInfo(defaultSel);
 
                 await dlg.ShowAsync();
             }
