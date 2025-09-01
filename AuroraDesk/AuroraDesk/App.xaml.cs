@@ -19,8 +19,14 @@ namespace AuroraDesk
     {
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+            // 在应用主窗口关闭时进行清理
+            var main = new MainWindow();
+            main.Closed += (_, __) => { try { WallpaperManager.CloseAll(); } catch { } };
+            // 进程退出时兜底清理（如通过任务管理器结束等）
+            try { AppDomain.CurrentDomain.ProcessExit += (_, __) => { try { WallpaperManager.CloseAll(); } catch { } }; } catch { }
+
             // 直接展示画廊窗口，由用户点击后再挂载壁纸
-            new MainWindow().Activate();
+            main.Activate();
         }
 
         private void CreateNormalWindow()

@@ -20,6 +20,7 @@ namespace AuroraDesk.Core
 
         // 多显示器：按设备名管理宿主
         private static readonly Dictionary<string, (Window Window, WebView2 WebView)> s_hosts = new();
+        private static readonly Dictionary<string, IntPtr> s_nativeHosts = new();
 
         // 预览窗口（不进行重父化，避免系统级句柄问题）
         private static Window? s_previewWindow;
@@ -72,30 +73,80 @@ namespace AuroraDesk.Core
             // 1) 找到桌面 WorkerW
             var workerw = DesktopHost.GetWorkerW();
 
-            // 若已有宿主，仅切换源并同步尺寸
+            // 若已有宿主：健壮性检查；必要时重建
             if (s_hosts.TryGetValue(monitorDeviceName, out var existing))
             {
-                if (initialSource != null)
+                try
                 {
-                    existing.WebView.Source = initialSource;
+                    if (existing.Window == null || existing.WebView == null || existing.Window.AppWindow == null)
+                    {
+                        s_hosts.Remove(monitorDeviceName);
+                    }
+                    else
+                    {
+                        if (initialSource != null)
+                        {
+                            existing.WebView.Source = initialSource;
+                        }
+                        var mi = MonitorManager.GetAll().FirstOrDefault(m => m.DeviceName == monitorDeviceName);
+                        if (mi != null)
+                        {
+                            existing.Window.AppWindow.MoveAndResize(mi.Bounds);
+                        }
+                        return;
+                    }
                 }
-                var mi = MonitorManager.GetAll().FirstOrDefault(m => m.DeviceName == monitorDeviceName);
-                if (mi != null)
+                catch
                 {
-                    existing.Window.AppWindow.MoveAndResize(mi.Bounds);
+                    s_hosts.Remove(monitorDeviceName);
                 }
-                return;
             }
 
             var w = new Window();
             var web = new WebView2();
 
+            if (w == null || web == null)
+            {
+                return;
+            }
+
+            // 保底：白屏时使用黑色背景，避免桌面被纯白覆盖
+            try
+            {
+                web.DefaultBackgroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
+            }
+            catch { }
+
             if (initialSource != null)
             {
-                web.Source = initialSource;
+                try { web.Source = initialSource; } catch { }
             }
 
             w.Content = web;
+
+            // 监听 WebView2 初始化/导航失败，回退到本地黑色空页
+            try
+            {
+                web.NavigationCompleted += (s, e) =>
+                {
+                    if (!e.IsSuccess)
+                    {
+                        try { web.Source = new Uri("about:blank"); } catch { }
+                    }
+                };
+                web.CoreWebView2Initialized += (s, e) =>
+                {
+                    try
+                    {
+                        if (web.CoreWebView2 == null)
+                        {
+                            web.Source = new Uri("about:blank");
+                        }
+                    }
+                    catch { }
+                };
+            }
+            catch { }
 
             // 定位到目标显示器的完整区域
             var monitor = MonitorManager.GetAll().FirstOrDefault(m => m.DeviceName == monitorDeviceName);
@@ -112,24 +163,74 @@ namespace AuroraDesk.Core
                 w.AppWindow.MoveAndResize(new RectInt32(workArea.X, workArea.Y, workArea.Width, workArea.Height));
             }
 
-            w.Activated += (sender, e) =>
+            // 先激活窗口，再在消息队列中延迟执行重父化，避免过早操作导致 WinUI 内部异常
+            w.Activate();
+            try
             {
+                // 默认禁用重父化，除非显式设置 AURORADESK_DISABLE_REPARENT=0
+                var disableReparent = true;
                 try
                 {
-                    if (workerw != IntPtr.Zero)
+                    var env = Environment.GetEnvironmentVariable("AURORADESK_DISABLE_REPARENT");
+                    if (!string.IsNullOrEmpty(env))
                     {
-                        Win32Window.AttachToParent(w, workerw);
+                        disableReparent = !(string.Equals(env, "0", StringComparison.OrdinalIgnoreCase) || string.Equals(env, "false", StringComparison.OrdinalIgnoreCase));
                     }
                 }
-                catch
+                catch { }
+
+                if (!disableReparent)
                 {
-                    // 忽略：如果挂载失败，窗口仍可显示
+                    _ = w.DispatcherQueue.TryEnqueue(() =>
+                    {
+                        try
+                        {
+                            if (workerw != IntPtr.Zero)
+                            {
+                                var hostHwnd = DesktopHost.CreateChildHostOnWorkerW(out var ww, out var rc);
+                                if (hostHwnd != IntPtr.Zero)
+                                {
+                                    s_nativeHosts[monitorDeviceName] = hostHwnd;
+                                    Win32Window.AttachToParent(w, hostHwnd);
+                                }
+                                else
+                                {
+                                    Win32Window.AttachToParent(w, workerw);
+                                }
+                            }
+                        }
+                        catch { }
+                    });
                 }
-            };
+            }
+            catch { }
 
-            w.Activate();
+            // 初始加载失败保护：如果 2 秒后仍为空，则在 UI 线程重试一次导航
+            try
+            {
+                _ = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    try
+                    {
+                        await System.Threading.Tasks.Task.Delay(2000);
+                        _ = w.DispatcherQueue.TryEnqueue(() =>
+                        {
+                            try
+                            {
+                                if (web != null && web.Source == null && initialSource != null)
+                                {
+                                    web.Source = initialSource;
+                                }
+                            }
+                            catch { }
+                        });
+                    }
+                    catch { }
+                });
+            }
+            catch { }
 
-            s_hosts[monitorDeviceName] = (w, web);
+            try { s_hosts[monitorDeviceName] = (w, web); } catch { }
 
             // 更新单窗口兼容引用（主显示器时）
             if (monitor != null && monitor.Primary)
@@ -137,6 +238,46 @@ namespace AuroraDesk.Core
                 HostWindow = w;
                 HostWebView = web;
             }
+        }
+
+        /// <summary>
+        /// 关闭并清理所有壁纸宿主窗口与预览窗口。
+        /// </summary>
+        public static void CloseAll()
+        {
+            try
+            {
+                // 关闭预览
+                try { s_previewWindow?.Close(); } catch { }
+                s_previewWebView = null;
+                s_previewWindow = null;
+
+                // 关闭各显示器的宿主窗口
+                foreach (var kv in s_hosts.Values)
+                {
+                    try
+                    {
+                        try { Win32Window.DetachFromParent(kv.Window); } catch { }
+                        kv.Window.Close();
+                    }
+                    catch { }
+                }
+                s_hosts.Clear();
+                // 尝试销毁本地宿主窗口
+                try
+                {
+                    foreach (var h in s_nativeHosts.Values)
+                    {
+                        try { NativeMethods.DestroyWindow(h); } catch { }
+                    }
+                }
+                catch { }
+                s_nativeHosts.Clear();
+
+                HostWebView = null;
+                HostWindow = null;
+            }
+            catch { }
         }
 
         /// <summary>
@@ -346,7 +487,7 @@ namespace AuroraDesk.Core
                     {
                         try
                         {
-                            _ = web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync("(function(){try{var s=document.getElementById('auroradesk_preview_scale');if(!s){s=document.createElement('style');s.id='auroradesk_preview_scale';document.documentElement.appendChild(s);} }catch(e){}})();");
+                            _ = web.CoreWebView2!.AddScriptToExecuteOnDocumentCreatedAsync("(function(){try{var s=document.getElementById('auroradesk_preview_scale');if(!s){s=document.createElement('style');s.id='auroradesk_preview_scale';document.documentElement.appendChild(s);} }catch(e){}})();");
                             Apply();
                         }
                         catch { }
@@ -368,7 +509,7 @@ namespace AuroraDesk.Core
         {
             foreach (var kv in s_hosts.Values)
             {
-                kv.WebView.Source = source;
+                try { if (kv.WebView != null) kv.WebView.Source = source; } catch { }
             }
         }
 

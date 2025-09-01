@@ -11,10 +11,10 @@ using System.Linq;
 using AuroraDesk.Pages;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
-using AuroraDesk.Core;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI;
 using System.Text.RegularExpressions;
+using Microsoft.UI.Composition.SystemBackdrops;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -31,6 +31,7 @@ namespace AuroraDesk
         public MainWindow()
         {
             InitializeComponent();
+            TrySetupBackdrop();
             this.ExtendsContentIntoTitleBar = true;
             this.SetTitleBar(AppTitleBar);
             this.Title = "AuroraDesk";
@@ -57,6 +58,26 @@ namespace AuroraDesk
 
             // 初始化当前显示器编号：主显示器 = 1
             TryUpdateMonitorNumberToPrimary();
+        }
+
+        private void TrySetupBackdrop()
+        {
+            try
+            {
+                if (MicaController.IsSupported())
+                {
+                    this.SystemBackdrop = new MicaBackdrop();
+                    return;
+                }
+                if (DesktopAcrylicController.IsSupported())
+                {
+                    this.SystemBackdrop = new DesktopAcrylicBackdrop();
+                }
+            }
+            catch
+            {
+                // Ignore backdrop failures on unsupported systems
+            }
         }
 
         // 示例：最大化窗口
