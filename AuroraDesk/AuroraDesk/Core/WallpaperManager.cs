@@ -167,7 +167,7 @@ namespace AuroraDesk.Core
             w.Activate();
             try
             {
-                // 默认禁用重父化，除非显式设置 AURORADESK_DISABLE_REPARENT=0
+                // 默认禁用重父化（稳定优先）。如需挂到桌面，请设置 AURORADESK_DISABLE_REPARENT=0/false。
                 var disableReparent = true;
                 try
                 {
@@ -179,24 +179,21 @@ namespace AuroraDesk.Core
                 }
                 catch { }
 
-                if (!disableReparent)
+                if (!disableReparent && workerw != IntPtr.Zero)
                 {
                     _ = w.DispatcherQueue.TryEnqueue(() =>
                     {
                         try
                         {
-                            if (workerw != IntPtr.Zero)
+                            var hostHwnd = DesktopHost.CreateChildHostOnWorkerW(out var ww, out var rc);
+                            if (hostHwnd != IntPtr.Zero)
                             {
-                                var hostHwnd = DesktopHost.CreateChildHostOnWorkerW(out var ww, out var rc);
-                                if (hostHwnd != IntPtr.Zero)
-                                {
-                                    s_nativeHosts[monitorDeviceName] = hostHwnd;
-                                    Win32Window.AttachToParent(w, hostHwnd);
-                                }
-                                else
-                                {
-                                    Win32Window.AttachToParent(w, workerw);
-                                }
+                                s_nativeHosts[monitorDeviceName] = hostHwnd;
+                                Win32Window.AttachToParent(w, hostHwnd);
+                            }
+                            else
+                            {
+                                Win32Window.AttachToParent(w, workerw);
                             }
                         }
                         catch { }

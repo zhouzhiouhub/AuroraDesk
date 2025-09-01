@@ -13,7 +13,37 @@ namespace AuroraDesk
             try
             {
                 // Workaround: mitigate GPU/driver related crashes
-                try { Environment.SetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-gpu --enable-features=SharedArrayBuffer,NetworkServiceInProcess"); } catch { }
+                try { 
+                    Environment.SetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-gpu --enable-features=SharedArrayBuffer,NetworkServiceInProcess"); 
+                    } 
+                catch { }
+                // 默认禁用将壁纸窗口挂到桌面（避免潜在崩溃）。如需开启可传入 --reparent 或预先设置环境变量。
+                try
+                {
+                    var existing = Environment.GetEnvironmentVariable("AURORADESK_DISABLE_REPARENT");
+                    bool enableReparentArg = false;
+                    try
+                    {
+                        if (args != null)
+                        {
+                            foreach (var a in args)
+                            {
+                                if (string.Equals(a, "--reparent", StringComparison.OrdinalIgnoreCase) || string.Equals(a, "/reparent", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    enableReparentArg = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                    if (string.IsNullOrEmpty(existing))
+                    {
+                        // 未显式设置时：默认禁用；仅在传入 --reparent 时启用
+                        Environment.SetEnvironmentVariable("AURORADESK_DISABLE_REPARENT", enableReparentArg ? "0" : "1");
+                    }
+                }
+                catch { }
                 // Initialize WinRT COM wrappers early (some environments need this to avoid native crashes)
                 try { global::WinRT.ComWrappersSupport.InitializeComWrappers(); } catch { }
                 Application.Start(p => { new App(); });

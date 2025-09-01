@@ -129,4 +129,14 @@ internal static class NativeMethods
     [DllImport("Shcore.dll")]
     internal static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
     internal const int MDT_EFFECTIVE_DPI = 0;
+
+    /*--------------------------------*\
+    | SystemParametersInfo (wallpaper) |
+    \*_-------------------------------*/
+    internal const uint SPI_SETDESKWALLPAPER = 0x0014;
+    internal const uint SPIF_UPDATEINIFILE = 0x0001;
+    internal const uint SPIF_SENDCHANGE = 0x0002;
+
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    internal static extern bool SystemParametersInfo(uint uiAction, uint uiParam, string pvParam, uint fWinIni);
 }

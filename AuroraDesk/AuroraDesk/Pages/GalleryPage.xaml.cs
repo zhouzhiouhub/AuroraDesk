@@ -170,6 +170,9 @@ namespace AuroraDesk.Pages
                     string toOpen = path;
                     if (IsImageFile(path))
                     {
+                        // 优先尝试设置为系统壁纸（图片类）
+                        try { AuroraDesk.Utilities.SystemWallpaper.TrySet(path); } catch { }
+                        // 同时在桌面宿主中打开预览（不影响系统壁纸设置失败时的可见效果）
                         toOpen = CreateImageWrapperHtml(path);
                     }
                     var uri = new Uri(toOpen);
