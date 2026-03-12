@@ -1,0 +1,9 @@
+<Window x:Class="AuroraDesk.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AuroraDesk"
+        Width="900" Height="600"
+        WindowStartupLocation="CenterScreen"
+        Background="White">
+    <Grid />
+</Window>
