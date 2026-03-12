@@ -21,8 +21,13 @@ public sealed class HtmlRenderer : IWallpaperRenderer
             WindowStyle = WindowStyle.None,
             ResizeMode = ResizeMode.NoResize,
             ShowInTaskbar = false,
+            ShowActivated = false,
             AllowsTransparency = false,
             Background = System.Windows.Media.Brushes.Black,
+            Left = -32000,
+            Top = -32000,
+            Width = 1,
+            Height = 1,
         };
 
         _webView = new WebView2();

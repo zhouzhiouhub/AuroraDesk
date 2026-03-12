@@ -23,8 +23,13 @@ public sealed class ImageRenderer : IWallpaperRenderer
             WindowStyle = WindowStyle.None,
             ResizeMode = ResizeMode.NoResize,
             ShowInTaskbar = false,
+            ShowActivated = false,
             AllowsTransparency = false,
             Background = Brushes.Black,
+            Left = -32000,
+            Top = -32000,
+            Width = 1,
+            Height = 1,
         };
 
         _imageControl = new System.Windows.Controls.Image
