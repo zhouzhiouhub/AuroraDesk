@@ -1,13 +1,18 @@
 using System.Windows;
 using System.Windows.Input;
+using AuroraDesk.App.ViewModels;
 
 namespace AuroraDesk.App;
 
 public partial class MainWindow : Window
 {
-    public MainWindow()
+    private readonly MainViewModel _viewModel;
+
+    public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        _viewModel = viewModel;
+        DataContext = _viewModel;
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

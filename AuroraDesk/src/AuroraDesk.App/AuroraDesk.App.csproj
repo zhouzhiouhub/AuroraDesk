@@ -11,4 +11,21 @@
   <ItemGroup>
     <Resource Include="Assets\**\*" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AuroraDesk.Core\AuroraDesk.Core.csproj" />
+    <ProjectReference Include="..\AuroraDesk.Application\AuroraDesk.Application.csproj" />
+    <ProjectReference Include="..\AuroraDesk.Infrastructure\AuroraDesk.Infrastructure.csproj" />
+    <ProjectReference Include="..\AuroraDesk.Runtime\AuroraDesk.Runtime.csproj" />
+    <ProjectReference Include="..\AuroraDesk.Renderers.Image\AuroraDesk.Renderers.Image.csproj" />
+    <ProjectReference Include="..\AuroraDesk.Shared\AuroraDesk.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.4" />
+    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+  </ItemGroup>
 </Project>
