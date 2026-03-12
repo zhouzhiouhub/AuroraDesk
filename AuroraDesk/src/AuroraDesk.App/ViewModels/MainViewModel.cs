@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -14,6 +15,11 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly WallpaperService _wallpaperService;
     private readonly ILogger<MainViewModel> _logger;
+
+    public ObservableCollection<MonitorDisplayItem> Monitors { get; } = new();
+
+    [ObservableProperty]
+    private MonitorDisplayItem? selectedMonitor;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ApplyWallpaperCommand))]
@@ -59,19 +65,14 @@ public partial class MainViewModel : ObservableObject
         _ => Stretch.UniformToFill,
     };
 
-    public string MonitorInfo
+    public string SelectedMonitorInfo
     {
         get
         {
-            try
-            {
-                var (w, h) = _wallpaperService.GetPrimaryScreenResolution();
-                return $"Primary Monitor  {w} × {h}";
-            }
-            catch
-            {
-                return "Primary Monitor";
-            }
+            if (SelectedMonitor is null) return "No monitor selected";
+            var p = SelectedMonitor.Profile;
+            var label = p.IsPrimary ? "Primary" : $"Monitor {SelectedMonitor.Index}";
+            return $"{label}  {p.Bounds.Width} × {p.Bounds.Height}";
         }
     }
 
@@ -79,14 +80,7 @@ public partial class MainViewModel : ObservableObject
     {
         _wallpaperService = wallpaperService;
         _logger = logger;
-
-        if (_wallpaperService.IsActive && _wallpaperService.CurrentWallpaperPath is not null)
-        {
-            SelectedImagePath = _wallpaperService.CurrentWallpaperPath;
-            SelectedScaleMode = _wallpaperService.CurrentScaleMode;
-            LoadPreview(_wallpaperService.CurrentWallpaperPath);
-            UpdateStatus();
-        }
+        LoadMonitors();
     }
 
     partial void OnSelectedImagePathChanged(string? value)
@@ -98,6 +92,81 @@ public partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(ScaleModeDescription));
         OnPropertyChanged(nameof(PreviewStretch));
+    }
+
+    partial void OnSelectedMonitorChanged(MonitorDisplayItem? oldValue, MonitorDisplayItem? newValue)
+    {
+        if (oldValue is not null) oldValue.IsSelected = false;
+        if (newValue is not null) newValue.IsSelected = true;
+
+        OnPropertyChanged(nameof(SelectedMonitorInfo));
+        LoadStateForSelectedMonitor();
+    }
+
+    public void SelectMonitor(MonitorDisplayItem item)
+    {
+        SelectedMonitor = item;
+    }
+
+    public void LoadMonitors()
+    {
+        const double targetWidth = 320;
+        const double targetHeight = 100;
+
+        var profiles = _wallpaperService.GetAllMonitors();
+        if (profiles.Count == 0) return;
+
+        int minX = profiles.Min(p => p.Bounds.X);
+        int minY = profiles.Min(p => p.Bounds.Y);
+        int maxX = profiles.Max(p => p.Bounds.X + p.Bounds.Width);
+        int maxY = profiles.Max(p => p.Bounds.Y + p.Bounds.Height);
+
+        double totalW = maxX - minX;
+        double totalH = maxY - minY;
+        double scale = Math.Min(targetWidth / totalW, targetHeight / totalH) * 0.9;
+
+        double offsetX = (targetWidth - totalW * scale) / 2;
+        double offsetY = (targetHeight - totalH * scale) / 2;
+
+        Monitors.Clear();
+        int index = 1;
+        foreach (var profile in profiles)
+        {
+            var item = new MonitorDisplayItem(
+                profile, index++,
+                (profile.Bounds.X - minX) * scale + offsetX,
+                (profile.Bounds.Y - minY) * scale + offsetY,
+                profile.Bounds.Width * scale,
+                profile.Bounds.Height * scale);
+
+            item.HasWallpaper = _wallpaperService.IsMonitorActive(profile.MonitorId);
+            Monitors.Add(item);
+        }
+
+        SelectedMonitor = Monitors.FirstOrDefault(m => m.IsPrimary) ?? Monitors.FirstOrDefault();
+    }
+
+    private void LoadStateForSelectedMonitor()
+    {
+        if (SelectedMonitor is null) return;
+
+        var assignment = _wallpaperService.GetAssignment(SelectedMonitor.Profile.MonitorId);
+        if (assignment.HasValue)
+        {
+            SelectedImagePath = assignment.Value.Path;
+            SelectedScaleMode = assignment.Value.Mode;
+            IsWallpaperActive = true;
+            LoadPreview(assignment.Value.Path);
+            UpdateStatus();
+        }
+        else
+        {
+            SelectedImagePath = null;
+            SelectedScaleMode = ScaleMode.Fill;
+            IsWallpaperActive = false;
+            PreviewImage = null;
+            StatusText = "Ready";
+        }
     }
 
     [RelayCommand]
@@ -120,14 +189,20 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanApplyWallpaper))]
     private async Task ApplyWallpaper()
     {
-        if (string.IsNullOrEmpty(SelectedImagePath)) return;
+        if (string.IsNullOrEmpty(SelectedImagePath) || SelectedMonitor is null) return;
 
         IsApplying = true;
         StatusText = "Applying wallpaper...";
 
         try
         {
-            await _wallpaperService.ApplyImageAsync(SelectedImagePath, SelectedScaleMode);
+            await _wallpaperService.ApplyImageAsync(
+                SelectedMonitor.Profile.MonitorId,
+                SelectedImagePath,
+                SelectedScaleMode);
+
+            SelectedMonitor.HasWallpaper = true;
+            IsWallpaperActive = true;
             UpdateStatus();
         }
         catch (FileNotFoundException)
@@ -152,29 +227,35 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ClearWallpaper()
     {
-        _wallpaperService.ClearWallpaper();
+        if (SelectedMonitor is null) return;
+
+        _wallpaperService.ClearMonitor(SelectedMonitor.Profile.MonitorId);
+        SelectedMonitor.HasWallpaper = false;
         IsWallpaperActive = false;
         StatusText = "Wallpaper cleared";
     }
 
     public void RefreshState()
     {
-        if (_wallpaperService.IsActive && _wallpaperService.CurrentWallpaperPath is not null)
-        {
-            SelectedImagePath = _wallpaperService.CurrentWallpaperPath;
-            SelectedScaleMode = _wallpaperService.CurrentScaleMode;
-            LoadPreview(_wallpaperService.CurrentWallpaperPath);
-        }
-        UpdateStatus();
-        OnPropertyChanged(nameof(MonitorInfo));
+        LoadMonitors();
+    }
+
+    public void OnDisplaySettingsChanged()
+    {
+        _wallpaperService.RefreshMonitors();
+        LoadMonitors();
     }
 
     private void UpdateStatus()
     {
-        if (_wallpaperService.IsActive && _wallpaperService.CurrentWallpaperPath is not null)
+        if (SelectedMonitor is null) return;
+
+        var assignment = _wallpaperService.GetAssignment(SelectedMonitor.Profile.MonitorId);
+        if (assignment.HasValue)
         {
-            var fileName = Path.GetFileName(_wallpaperService.CurrentWallpaperPath);
-            StatusText = $"Active — {fileName}  ({SelectedScaleMode})";
+            var fileName = Path.GetFileName(assignment.Value.Path);
+            var monLabel = SelectedMonitor.IsPrimary ? "Primary" : $"Monitor {SelectedMonitor.Index}";
+            StatusText = $"Active on {monLabel} — {fileName} ({assignment.Value.Mode})";
             IsWallpaperActive = true;
         }
         else

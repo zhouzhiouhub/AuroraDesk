@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using AuroraDesk.Core.Interfaces;
 using AuroraDesk.Core.Models;
 using AuroraDesk.Runtime.Native;
@@ -31,9 +32,7 @@ public class DesktopHostManager : IDesktopHost
         {
             IntPtr shellView = Win32.FindWindowEx(hwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
             if (shellView != IntPtr.Zero)
-            {
                 workerW = Win32.FindWindowEx(IntPtr.Zero, hwnd, "WorkerW", null);
-            }
             return true;
         }, IntPtr.Zero);
 
@@ -41,17 +40,21 @@ public class DesktopHostManager : IDesktopHost
         return _workerW;
     }
 
-    public void EmbedWindow(IntPtr childHwnd, int x, int y, int width, int height)
+    public void EmbedWindow(IntPtr childHwnd, int screenX, int screenY, int width, int height)
     {
         IntPtr host = GetDesktopWorkerW();
-
         Win32.SetParent(childHwnd, host);
 
         int exStyle = Win32.GetWindowLong(childHwnd, Win32.GWL_EXSTYLE);
         exStyle |= Win32.WS_EX_TOOLWINDOW | Win32.WS_EX_NOACTIVATE;
         Win32.SetWindowLong(childHwnd, Win32.GWL_EXSTYLE, exStyle);
 
-        Win32.SetWindowPos(childHwnd, IntPtr.Zero, x, y, width, height,
+        int virtualOriginX = Win32.GetSystemMetrics(Win32.SM_XVIRTUALSCREEN);
+        int virtualOriginY = Win32.GetSystemMetrics(Win32.SM_YVIRTUALSCREEN);
+        int workerX = screenX - virtualOriginX;
+        int workerY = screenY - virtualOriginY;
+
+        Win32.SetWindowPos(childHwnd, IntPtr.Zero, workerX, workerY, width, height,
             Win32.SWP_NOACTIVATE | Win32.SWP_SHOWWINDOW);
     }
 
@@ -60,13 +63,39 @@ public class DesktopHostManager : IDesktopHost
         Win32.SetParent(childHwnd, IntPtr.Zero);
     }
 
-    public ScreenRect GetPrimaryScreenBounds()
+    public List<MonitorProfile> GetAllMonitors()
     {
-        int virtualX = Win32.GetSystemMetrics(Win32.SM_XVIRTUALSCREEN);
-        int virtualY = Win32.GetSystemMetrics(Win32.SM_YVIRTUALSCREEN);
-        int width = Win32.GetSystemMetrics(Win32.SM_CXSCREEN);
-        int height = Win32.GetSystemMetrics(Win32.SM_CYSCREEN);
-        return new ScreenRect(-virtualX, -virtualY, width, height);
+        var monitors = new List<MonitorProfile>();
+        Win32.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, MonitorEnumCallback, IntPtr.Zero);
+        return monitors;
+
+        bool MonitorEnumCallback(IntPtr hMonitor, IntPtr hdcMonitor, ref Win32.RECT rect, IntPtr data)
+        {
+            var info = new Win32.MONITORINFOEX();
+            info.cbSize = Marshal.SizeOf<Win32.MONITORINFOEX>();
+
+            if (Win32.GetMonitorInfo(hMonitor, ref info))
+            {
+                bool isPrimary = (info.dwFlags & Win32.MONITORINFOF_PRIMARY) != 0;
+
+                uint dpiX = 96, dpiY = 96;
+                try { Win32.GetDpiForMonitor(hMonitor, 0, out dpiX, out dpiY); }
+                catch { /* fallback to 96 */ }
+
+                monitors.Add(new MonitorProfile(
+                    info.szDevice,
+                    info.szDevice,
+                    new ScreenRect(
+                        info.rcMonitor.Left,
+                        info.rcMonitor.Top,
+                        info.rcMonitor.Right - info.rcMonitor.Left,
+                        info.rcMonitor.Bottom - info.rcMonitor.Top),
+                    isPrimary,
+                    dpiX,
+                    dpiY));
+            }
+            return true;
+        }
     }
 
     public void Reset()

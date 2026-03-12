@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:AuroraDesk.App.ViewModels"
         Title="AuroraDesk"
-        Width="980" Height="660"
-        MinWidth="820" MinHeight="580"
+        Width="980" Height="680"
+        MinWidth="820" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -14,9 +14,7 @@
         Icon="Assets/AppIcon.ico">
 
     <Window.Resources>
-        <!-- ═══════════════════════════════════ -->
-        <!-- Title bar buttons                  -->
-        <!-- ═══════════════════════════════════ -->
+        <!-- Title bar buttons -->
         <Style x:Key="TitleBarButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -27,8 +25,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -42,14 +39,12 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style x:Key="TitleBarCloseButton" BasedOn="{StaticResource TitleBarButton}" TargetType="Button">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -64,9 +59,7 @@
             </Setter>
         </Style>
 
-        <!-- ═══════════════════════════════════ -->
-        <!-- Accent button (primary action)     -->
-        <!-- ═══════════════════════════════════ -->
+        <!-- Accent button -->
         <Style x:Key="AccentButton" TargetType="Button">
             <Setter Property="Foreground" Value="#0D1117" />
             <Setter Property="FontSize" Value="13" />
@@ -77,11 +70,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="8"
-                                Padding="{TemplateBinding Padding}"
+                        <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}"
                                 Background="{StaticResource AuroraGradientBrush}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -99,9 +90,7 @@
             </Setter>
         </Style>
 
-        <!-- ═══════════════════════════════════ -->
-        <!-- Card button (secondary action)     -->
-        <!-- ═══════════════════════════════════ -->
+        <!-- Card button -->
         <Style x:Key="CardButton" TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="FontSize" Value="13" />
@@ -111,22 +100,16 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="8"
-                                Padding="{TemplateBinding Padding}"
+                        <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}"
                                 Background="{StaticResource BgSurfaceBrush}"
-                                BorderBrush="{StaticResource BorderSubtleBrush}"
-                                BorderThickness="1">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
+                                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background"
-                                        Value="{StaticResource BgCardHoverBrush}" />
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgCardHoverBrush}" />
                                 <Setter TargetName="Bd" Property="BorderBrush">
-                                    <Setter.Value>
-                                        <SolidColorBrush Color="{StaticResource TextMuted}" />
-                                    </Setter.Value>
+                                    <Setter.Value><SolidColorBrush Color="{StaticResource TextMuted}" /></Setter.Value>
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -139,11 +122,9 @@
         </Style>
     </Window.Resources>
 
-    <!-- Outer chrome -->
     <Border CornerRadius="12"
             Background="{StaticResource BgDarkBrush}"
-            BorderBrush="{StaticResource BorderSubtleBrush}"
-            BorderThickness="1">
+            BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.5" />
         </Border.Effect>
@@ -155,76 +136,61 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- ═════════════════════════════════════ -->
-            <!-- Title bar                            -->
-            <!-- ═════════════════════════════════════ -->
+            <!-- ══════ Title bar ══════ -->
             <Grid Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Orientation="Horizontal"
-                            VerticalAlignment="Center" Margin="12,0,0,0">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
                     <Image Source="Assets/Square44x44Logo.altform-unplated_targetsize-48.png"
-                           Width="22" Height="22"
-                           RenderOptions.BitmapScalingMode="HighQuality"
+                           Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"
                            VerticalAlignment="Center" />
-                    <TextBlock Text="AuroraDesk"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                    <TextBlock Text="AuroraDesk" Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
                                VerticalAlignment="Center" Margin="8,1,0,0" />
                     <Border CornerRadius="4" Padding="6,2" Margin="8,0,0,0"
                             Background="#0F6EEEB0" VerticalAlignment="Center">
-                        <TextBlock Text="v0.1.0" FontSize="10"
+                        <TextBlock Text="v0.2.0" FontSize="10"
                                    Foreground="{StaticResource TextMutedBrush}"
                                    FontFamily="Segoe UI Variable Text, Segoe UI" />
                     </Border>
                 </StackPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
-                            VerticalAlignment="Stretch">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Stretch">
                     <Button Click="MinimizeButton_Click" Style="{StaticResource TitleBarButton}">
-                        <Path Data="M4,0 L16,0" Stroke="{StaticResource TextSecondaryBrush}"
-                              StrokeThickness="1" />
+                        <Path Data="M4,0 L16,0" Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1" />
                     </Button>
                     <Button Click="MaximizeButton_Click" Style="{StaticResource TitleBarButton}">
-                        <Rectangle Width="10" Height="10"
-                                   Stroke="{StaticResource TextSecondaryBrush}"
+                        <Rectangle Width="10" Height="10" Stroke="{StaticResource TextSecondaryBrush}"
                                    StrokeThickness="1" Fill="Transparent" />
                     </Button>
                     <Button Click="CloseButton_Click" Style="{StaticResource TitleBarCloseButton}">
-                        <Path Data="M0,0 L10,10 M10,0 L0,10"
-                              Stroke="{StaticResource TextSecondaryBrush}"
-                              StrokeThickness="1" />
+                        <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1" />
                     </Button>
                 </StackPanel>
             </Grid>
 
-            <!-- ═════════════════════════════════════ -->
-            <!-- Main content                         -->
-            <!-- ═════════════════════════════════════ -->
+            <!-- ══════ Main content ══════ -->
             <Grid Grid.Row="1" Margin="20,8,20,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" MinWidth="320" />
                     <ColumnDefinition Width="290" />
                 </Grid.ColumnDefinitions>
 
-                <!-- ═══════════════════════════════ -->
-                <!-- Left: Preview area             -->
-                <!-- ═══════════════════════════════ -->
+                <!-- ═══ Left: Monitor selector + Preview ═══ -->
                 <Border Grid.Column="0" CornerRadius="10"
                         Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
-                        BorderThickness="1" Margin="0,0,14,0">
+                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                        Margin="0,0,14,0">
                     <Grid>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
                         <!-- Preview header -->
-                        <Border Grid.Row="0" Padding="16,12,16,10"
+                        <Border Grid.Row="0" Padding="16,10,16,8"
                                 BorderThickness="0,0,0,1"
                                 BorderBrush="{StaticResource BorderSubtleBrush}">
                             <Grid>
@@ -233,62 +199,162 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-
                                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                                     <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="14" VerticalAlignment="Center"
-                                               Foreground="{StaticResource TextMutedBrush}"
-                                               Margin="0,0,8,0" />
-                                    <TextBlock Text="Preview"
-                                               FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextMutedBrush}" Margin="0,0,8,0" />
+                                    <TextBlock Text="Preview" FontSize="13" FontWeight="SemiBold"
                                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                                Foreground="{StaticResource TextPrimaryBrush}"
                                                VerticalAlignment="Center" />
                                 </StackPanel>
-
-                                <Border Grid.Column="2" CornerRadius="4" Padding="8,3"
-                                        Background="#0F6EEEB0">
-                                    <TextBlock Text="{Binding MonitorInfo}"
-                                               FontSize="11"
+                                <Border Grid.Column="2" CornerRadius="4" Padding="8,3" Background="#0F6EEEB0">
+                                    <TextBlock Text="{Binding SelectedMonitorInfo}" FontSize="11"
                                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                                Foreground="{StaticResource TextSecondaryBrush}" />
                                 </Border>
                             </Grid>
                         </Border>
 
+                        <!-- Monitor layout selector -->
+                        <Border Grid.Row="1" Padding="16,12,16,12"
+                                BorderThickness="0,0,0,1"
+                                BorderBrush="{StaticResource BorderSubtleBrush}"
+                                Background="#08FFFFFF">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Text="Select a monitor to configure"
+                                           FontSize="11" Margin="0,0,0,8"
+                                           FontFamily="Segoe UI Variable Text, Segoe UI"
+                                           Foreground="{StaticResource TextMutedBrush}" />
+
+                                <!-- Spatial monitor layout -->
+                                <ItemsControl Grid.Row="1"
+                                              ItemsSource="{Binding Monitors}"
+                                              Height="110" HorizontalAlignment="Center">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Canvas Width="320" Height="110" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                                            <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:MonitorDisplayItem}">
+                                            <Border Width="{Binding Width}" Height="{Binding Height}"
+                                                    CornerRadius="4" Cursor="Hand"
+                                                    MouseLeftButtonDown="Monitor_Click"
+                                                    SnapsToDevicePixels="True">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+                                                        <Setter Property="BorderThickness" Value="1.5" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="BorderBrush">
+                                                                    <Setter.Value>
+                                                                        <SolidColorBrush Color="{StaticResource AuroraGreen}" />
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Setter Property="Background" Value="#1A6EEEB0" />
+                                                                <Setter Property="BorderThickness" Value="2" />
+                                                            </DataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding IsSelected}" Value="False" />
+                                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Background" Value="{StaticResource BgCardHoverBrush}" />
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+
+                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding Label}"
+                                                               FontSize="14" FontWeight="SemiBold"
+                                                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                                                               HorizontalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding Resolution}"
+                                                               FontSize="9"
+                                                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                                                               HorizontalAlignment="Center"
+                                                               Margin="0,1,0,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <!-- Active indicator -->
+                                                    <Ellipse Width="6" Height="6" Margin="0,4,0,0"
+                                                             HorizontalAlignment="Center"
+                                                             Visibility="{Binding HasWallpaper, Converter={StaticResource BoolToVisibleConverter}}">
+                                                        <Ellipse.Fill>
+                                                            <SolidColorBrush Color="{StaticResource AuroraGreen}" />
+                                                        </Ellipse.Fill>
+                                                    </Ellipse>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </Border>
+
                         <!-- Preview content -->
-                        <Grid Grid.Row="1" Margin="16">
+                        <Grid Grid.Row="2" Margin="16">
                             <!-- No image placeholder -->
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                         Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisibleConverter}}">
-                                <Border Width="64" Height="64" CornerRadius="32"
-                                        Background="#0FFFFFFF" HorizontalAlignment="Center"
-                                        Margin="0,0,0,16">
+                                <Border Width="56" Height="56" CornerRadius="28"
+                                        Background="#0FFFFFFF" HorizontalAlignment="Center" Margin="0,0,0,14">
                                     <TextBlock Text="&#xEB9F;" FontFamily="Segoe MDL2 Assets"
-                                               FontSize="28" HorizontalAlignment="Center"
+                                               FontSize="24" HorizontalAlignment="Center"
                                                VerticalAlignment="Center"
                                                Foreground="{StaticResource TextMutedBrush}" />
                                 </Border>
-                                <TextBlock Text="No image selected"
-                                           FontSize="15" FontWeight="SemiBold"
-                                           HorizontalAlignment="Center"
+                                <TextBlock Text="No wallpaper on this monitor"
+                                           FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
                                            Foreground="{StaticResource TextSecondaryBrush}" />
-                                <TextBlock Text="Browse for an image to see a preview here"
-                                           FontSize="12" Margin="0,6,0,0"
-                                           HorizontalAlignment="Center"
+                                <TextBlock Text="Select an image and click Apply to set it"
+                                           FontSize="12" Margin="0,5,0,0" HorizontalAlignment="Center"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
                                            Foreground="{StaticResource TextMutedBrush}" />
                             </StackPanel>
 
-                            <!-- Monitor frame with image -->
+                            <!-- Monitor frame with preview -->
                             <Border Visibility="{Binding PreviewImage, Converter={StaticResource NotNullToVisibleConverter}}"
                                     CornerRadius="6"
-                                    BorderBrush="{StaticResource BorderSubtleBrush}"
-                                    BorderThickness="2"
-                                    Background="#FF0A0A0A"
-                                    ClipToBounds="True"
-                                    MaxWidth="680" MaxHeight="440">
+                                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="2"
+                                    Background="#FF0A0A0A" ClipToBounds="True"
+                                    MaxWidth="620" MaxHeight="380">
                                 <Image Source="{Binding PreviewImage}"
                                        Stretch="{Binding PreviewStretch}"
                                        RenderOptions.BitmapScalingMode="HighQuality" />
@@ -297,117 +363,88 @@
                     </Grid>
                 </Border>
 
-                <!-- ═══════════════════════════════ -->
-                <!-- Right: Control panel           -->
-                <!-- ═══════════════════════════════ -->
+                <!-- ═══ Right: Control panel ═══ -->
                 <Border Grid.Column="1" CornerRadius="10"
                         Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
-                        BorderThickness="1">
+                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <!-- Settings content -->
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
-                                      Padding="20,20,20,0">
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="20,20,20,0">
                             <StackPanel>
-                                <!-- Section header -->
                                 <TextBlock Text="Image Wallpaper"
                                            FontSize="18" FontWeight="SemiBold"
                                            FontFamily="Segoe UI Variable Display, Segoe UI"
                                            Foreground="{StaticResource TextPrimaryBrush}" />
-                                <TextBlock Text="Choose an image for your desktop background"
-                                           FontSize="12"
-                                           FontFamily="Segoe UI Variable Text, Segoe UI"
-                                           Foreground="{StaticResource TextMutedBrush}"
-                                           Margin="0,4,0,0" />
+                                <TextBlock Text="Set a different image for each monitor"
+                                           FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
+                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0" />
 
-                                <!-- Divider -->
-                                <Border Height="1" Background="{StaticResource BorderSubtleBrush}"
-                                        Margin="0,16,0,16" />
+                                <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,16,0,16" />
 
-                                <!-- Select image -->
-                                <TextBlock Text="IMAGE FILE"
-                                           FontSize="10" FontWeight="Bold"
+                                <!-- Image file -->
+                                <TextBlock Text="IMAGE FILE" FontSize="10" FontWeight="Bold"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
-                                           Foreground="{StaticResource TextMutedBrush}"
-                                           Margin="0,0,0,8" />
+                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8" />
 
                                 <Button Command="{Binding SelectImageCommand}"
                                         Style="{StaticResource CardButton}"
                                         HorizontalAlignment="Stretch" Margin="0,0,0,6">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="14" VerticalAlignment="Center"
-                                                   Margin="0,0,8,0" />
-                                        <TextBlock Text="Browse for image..."
-                                                   VerticalAlignment="Center" />
+                                                   FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <TextBlock Text="Browse for image..." VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
 
-                                <!-- File info -->
-                                <Border CornerRadius="4" Padding="10,7"
-                                        Background="#08FFFFFF" Margin="0,0,0,20"
+                                <Border CornerRadius="4" Padding="10,7" Background="#08FFFFFF" Margin="0,0,0,20"
                                         Visibility="{Binding SelectedFileName, Converter={StaticResource NotNullToVisibleConverter}}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="&#xE8A5;"
-                                                   FontFamily="Segoe MDL2 Assets"
+                                        <TextBlock Grid.Column="0" Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="12" VerticalAlignment="Center"
-                                                   Foreground="{StaticResource TextMutedBrush}"
-                                                   Margin="0,0,8,0" />
-                                        <TextBlock Grid.Column="1"
-                                                   Text="{Binding SelectedFileName}"
-                                                   FontSize="12"
-                                                   FontFamily="Segoe UI Variable Text, Segoe UI"
+                                                   Foreground="{StaticResource TextMutedBrush}" Margin="0,0,8,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding SelectedFileName}"
+                                                   FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
                                                    Foreground="{StaticResource TextSecondaryBrush}"
                                                    TextTrimming="CharacterEllipsis"
-                                                   ToolTip="{Binding SelectedImagePath}"
-                                                   VerticalAlignment="Center" />
+                                                   ToolTip="{Binding SelectedImagePath}" VerticalAlignment="Center" />
                                     </Grid>
                                 </Border>
 
                                 <!-- Display mode -->
-                                <TextBlock Text="DISPLAY MODE"
-                                           FontSize="10" FontWeight="Bold"
+                                <TextBlock Text="DISPLAY MODE" FontSize="10" FontWeight="Bold"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
-                                           Foreground="{StaticResource TextMutedBrush}"
-                                           Margin="0,0,0,8" />
+                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8" />
 
                                 <ComboBox ItemsSource="{Binding AvailableScaleModes}"
                                           SelectedItem="{Binding SelectedScaleMode}"
-                                          Style="{StaticResource DarkComboBox}"
-                                          Margin="0,0,0,6" />
+                                          Style="{StaticResource DarkComboBox}" Margin="0,0,0,6" />
 
-                                <!-- Mode description -->
                                 <TextBlock Text="{Binding ScaleModeDescription}"
-                                           FontSize="11"
-                                           FontFamily="Segoe UI Variable Text, Segoe UI"
+                                           FontSize="11" FontFamily="Segoe UI Variable Text, Segoe UI"
                                            Foreground="{StaticResource TextMutedBrush}"
-                                           TextWrapping="Wrap"
-                                           Margin="0,0,0,8" />
+                                           TextWrapping="Wrap" Margin="0,0,0,8" />
                             </StackPanel>
                         </ScrollViewer>
 
-                        <!-- Action buttons (pinned to bottom) -->
+                        <!-- Buttons pinned to bottom -->
                         <StackPanel Grid.Row="1" Margin="20,12,20,20">
-                            <Border Height="1" Background="{StaticResource BorderSubtleBrush}"
-                                    Margin="0,0,0,14" />
+                            <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,0,0,14" />
 
                             <Button Command="{Binding ApplyWallpaperCommand}"
                                     Style="{StaticResource AccentButton}"
                                     HorizontalAlignment="Stretch" Margin="0,0,0,8">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
-                                               FontSize="13" VerticalAlignment="Center"
-                                               Margin="0,0,8,0" />
-                                    <TextBlock Text="Apply Wallpaper" VerticalAlignment="Center" />
+                                               FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock Text="Apply to Monitor" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
 
@@ -416,9 +453,8 @@
                                     HorizontalAlignment="Stretch">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xEA99;" FontFamily="Segoe MDL2 Assets"
-                                               FontSize="13" VerticalAlignment="Center"
-                                               Margin="0,0,8,0" />
-                                    <TextBlock Text="Clear Wallpaper" VerticalAlignment="Center" />
+                                               FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock Text="Clear This Monitor" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -426,19 +462,14 @@
                 </Border>
             </Grid>
 
-            <!-- ═════════════════════════════════════ -->
-            <!-- Status bar                           -->
-            <!-- ═════════════════════════════════════ -->
+            <!-- ══════ Status bar ══════ -->
             <Border Grid.Row="2" Padding="20,10"
-                    BorderThickness="0,1,0,0"
-                    BorderBrush="{StaticResource BorderSubtleBrush}">
+                    BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderSubtleBrush}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-
-                    <!-- Status indicator dot -->
                     <Ellipse Grid.Column="0" Width="7" Height="7"
                              VerticalAlignment="Center" Margin="0,0,8,0">
                         <Ellipse.Style>
@@ -456,14 +487,10 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding StatusText}"
-                               FontSize="12"
+                    <TextBlock Grid.Column="1" Text="{Binding StatusText}" FontSize="12"
                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                Foreground="{StaticResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 </Grid>
             </Border>
         </Grid>
