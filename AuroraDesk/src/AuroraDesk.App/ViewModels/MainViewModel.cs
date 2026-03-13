@@ -16,9 +16,17 @@ namespace AuroraDesk.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    public enum LibraryScope
+    {
+        BuiltIn,
+        User,
+    }
+
     private readonly WallpaperService _wallpaperService;
     private readonly IWallpaperLibrary _wallpaperLibrary;
     private readonly ILogger<MainViewModel> _logger;
+    private readonly List<WallpaperThumbnailItem> _builtInLibraryItems = [];
+    private readonly List<WallpaperThumbnailItem> _userLibraryItems = [];
 
     private static readonly HashSet<string> SupportedExtensions =
         new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp", ".webp" };
@@ -54,12 +62,30 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private WallpaperThumbnailItem? selectedLibraryItem;
 
+    [ObservableProperty]
+    private LibraryScope selectedLibraryScope = LibraryScope.BuiltIn;
+
     public ScaleMode[] AvailableScaleModes { get; } =
         [ScaleMode.Fill, ScaleMode.Fit, ScaleMode.Stretch, ScaleMode.Center];
 
     public string? SelectedFileName => string.IsNullOrEmpty(SelectedImagePath)
         ? null
         : Path.GetFileName(SelectedImagePath);
+
+    public bool IsBuiltInLibrarySelected => SelectedLibraryScope == LibraryScope.BuiltIn;
+    public bool IsUserLibrarySelected => SelectedLibraryScope == LibraryScope.User;
+
+    public string LibraryDescription => IsBuiltInLibrarySelected
+        ? "Built-in wallpapers shipped with AuroraDesk"
+        : "Import and manage your custom wallpapers";
+
+    public string EmptyLibraryTitle => IsBuiltInLibrarySelected
+        ? "Built-in library is empty"
+        : "Custom library is empty";
+
+    public string EmptyLibraryHint => IsBuiltInLibrarySelected
+        ? "Put images into Library/wallpapers to use built-in items"
+        : "Import images or folders to get started";
 
     public string ScaleModeDescription => SelectedScaleMode switch
     {
@@ -111,6 +137,17 @@ public partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(ScaleModeDescription));
         OnPropertyChanged(nameof(PreviewStretch));
+    }
+
+    partial void OnSelectedLibraryScopeChanged(LibraryScope value)
+    {
+        OnPropertyChanged(nameof(IsBuiltInLibrarySelected));
+        OnPropertyChanged(nameof(IsUserLibrarySelected));
+        OnPropertyChanged(nameof(LibraryDescription));
+        OnPropertyChanged(nameof(EmptyLibraryTitle));
+        OnPropertyChanged(nameof(EmptyLibraryHint));
+        RefreshActiveLibraryItems();
+        ClearLibrarySelection();
     }
 
     partial void OnSelectedMonitorChanged(MonitorDisplayItem? oldValue, MonitorDisplayItem? newValue)
@@ -207,6 +244,18 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void ShowBuiltInLibrary()
+    {
+        SelectedLibraryScope = LibraryScope.BuiltIn;
+    }
+
+    [RelayCommand]
+    private void ShowUserLibrary()
+    {
+        SelectedLibraryScope = LibraryScope.User;
+    }
+
+    [RelayCommand]
     private async Task ImportToLibrary()
     {
         var dialog = new OpenFileDialog
@@ -242,9 +291,11 @@ public partial class MainViewModel : ObservableObject
 
             foreach (var item in newItems)
             {
-                var thumbItem = new WallpaperThumbnailItem(item);
+                var thumbItem = new WallpaperThumbnailItem(item, isBuiltIn: false);
                 thumbItem.LoadThumbnail();
-                LibraryItems.Add(thumbItem);
+                _userLibraryItems.Add(thumbItem);
+                if (IsUserLibrarySelected)
+                    LibraryItems.Add(thumbItem);
             }
 
             StatusText = newItems.Count > 0
@@ -299,9 +350,11 @@ public partial class MainViewModel : ObservableObject
 
             foreach (var item in newItems)
             {
-                var thumbItem = new WallpaperThumbnailItem(item);
+                var thumbItem = new WallpaperThumbnailItem(item, isBuiltIn: false);
                 thumbItem.LoadThumbnail();
-                LibraryItems.Add(thumbItem);
+                _userLibraryItems.Add(thumbItem);
+                if (IsUserLibrarySelected)
+                    LibraryItems.Add(thumbItem);
             }
 
             StatusText = newItems.Count > 0
@@ -323,8 +376,14 @@ public partial class MainViewModel : ObservableObject
     private void RemoveFromLibrary(WallpaperThumbnailItem? item)
     {
         if (item is null) return;
+        if (item.IsBuiltIn)
+        {
+            StatusText = "Built-in wallpapers cannot be removed";
+            return;
+        }
 
         _wallpaperLibrary.Remove(item.Id);
+        _userLibraryItems.Remove(item);
         LibraryItems.Remove(item);
 
         if (SelectedLibraryItem == item)
@@ -357,16 +416,76 @@ public partial class MainViewModel : ObservableObject
 
     private void LoadLibrary()
     {
-        LibraryItems.Clear();
+        _builtInLibraryItems.Clear();
+        _userLibraryItems.Clear();
+
+        foreach (var item in LoadBuiltInLibraryItems())
+        {
+            var thumbItem = new WallpaperThumbnailItem(item, isBuiltIn: true);
+            thumbItem.LoadThumbnail();
+            _builtInLibraryItems.Add(thumbItem);
+        }
+
         foreach (var item in _wallpaperLibrary.GetAll())
         {
-            var thumbItem = new WallpaperThumbnailItem(item);
+            var thumbItem = new WallpaperThumbnailItem(item, isBuiltIn: false);
             thumbItem.LoadThumbnail();
-            LibraryItems.Add(thumbItem);
+            _userLibraryItems.Add(thumbItem);
         }
+
+        if (_builtInLibraryItems.Count == 0 && _userLibraryItems.Count > 0)
+            SelectedLibraryScope = LibraryScope.User;
+        else
+            RefreshActiveLibraryItems();
     }
 
-    private WallpaperItem? CreateWallpaperItem(string filePath)
+    private void RefreshActiveLibraryItems()
+    {
+        LibraryItems.Clear();
+        var source = IsBuiltInLibrarySelected ? _builtInLibraryItems : _userLibraryItems;
+        foreach (var item in source)
+            LibraryItems.Add(item);
+    }
+
+    private IReadOnlyList<WallpaperItem> LoadBuiltInLibraryItems()
+    {
+        var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var dir in GetBuiltInWallpaperDirectories())
+        {
+            if (!Directory.Exists(dir)) continue;
+
+            foreach (var file in Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories))
+            {
+                if (!SupportedExtensions.Contains(Path.GetExtension(file))) continue;
+                files.Add(file);
+            }
+        }
+
+        return files
+            .Select(CreateBuiltInWallpaperItem)
+            .Where(item => item is not null)
+            .Cast<WallpaperItem>()
+            .ToList();
+    }
+
+    private static IEnumerable<string> GetBuiltInWallpaperDirectories()
+    {
+        var baseDir = AppContext.BaseDirectory;
+        return new[]
+        {
+            Path.GetFullPath(Path.Combine(baseDir, "Library", "wallpapers")),
+            Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "Library", "wallpapers")),
+            Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "Library", "wallpapers")),
+        }.Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private WallpaperItem? CreateBuiltInWallpaperItem(string filePath)
+    {
+        return CreateWallpaperItem(filePath, generateThumbnail: false);
+    }
+
+    private WallpaperItem? CreateWallpaperItem(string filePath, bool generateThumbnail = true)
     {
         try
         {
@@ -387,7 +506,7 @@ public partial class MainViewModel : ObservableObject
             }
             catch { /* dimensions unknown, not critical */ }
 
-            var thumbnailPath = GenerateThumbnail(filePath, id);
+            var thumbnailPath = generateThumbnail ? GenerateThumbnail(filePath, id) : null;
 
             return new WallpaperItem(
                 id, WallpaperType.Image, filePath, title,

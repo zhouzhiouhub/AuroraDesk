@@ -17,6 +17,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\Library\wallpapers\**\*"
+          Link="Library\wallpapers\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AuroraDesk.Core\AuroraDesk.Core.csproj" />
     <ProjectReference Include="..\AuroraDesk.Application\AuroraDesk.Application.csproj" />
     <ProjectReference Include="..\AuroraDesk.Infrastructure\AuroraDesk.Infrastructure.csproj" />

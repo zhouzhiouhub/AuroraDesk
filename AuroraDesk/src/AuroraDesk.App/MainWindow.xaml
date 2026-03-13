@@ -381,14 +381,33 @@
                                        FontSize="18" FontWeight="SemiBold"
                                        FontFamily="Segoe UI Variable Display, Segoe UI"
                                        Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock Text="Import and manage your wallpaper collection"
+                            <TextBlock Text="{Binding LibraryDescription}"
                                        FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
                                        Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0" />
 
                             <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,14,0,12" />
 
+                            <!-- Library type switch -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="6" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Command="{Binding ShowBuiltInLibraryCommand}"
+                                        Style="{StaticResource CardButton}" Padding="8,9"
+                                        IsEnabled="{Binding IsUserLibrarySelected}">
+                                    <TextBlock Text="Built-in" FontSize="12" VerticalAlignment="Center" />
+                                </Button>
+                                <Button Grid.Column="2" Command="{Binding ShowUserLibraryCommand}"
+                                        Style="{StaticResource CardButton}" Padding="8,9"
+                                        IsEnabled="{Binding IsBuiltInLibrarySelected}">
+                                    <TextBlock Text="Custom" FontSize="12" VerticalAlignment="Center" />
+                                </Button>
+                            </Grid>
+
                             <!-- Import buttons -->
-                            <Grid Margin="0,0,0,4">
+                            <Grid Margin="0,0,0,4" Visibility="{Binding IsUserLibrarySelected, Converter={StaticResource BoolToVisibleConverter}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="6" />
@@ -428,11 +447,11 @@
                                                    VerticalAlignment="Center"
                                                    Foreground="{StaticResource TextMutedBrush}" />
                                     </Border>
-                                    <TextBlock Text="Library is empty"
+                                    <TextBlock Text="{Binding EmptyLibraryTitle}"
                                                FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"
                                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                                Foreground="{StaticResource TextSecondaryBrush}" />
-                                    <TextBlock Text="Import images to get started"
+                                    <TextBlock Text="{Binding EmptyLibraryHint}"
                                                FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center"
                                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                                Foreground="{StaticResource TextMutedBrush}" />
@@ -484,6 +503,16 @@
                                                         <MenuItem Header="Remove from library"
                                                                   Command="{Binding DataContext.RemoveFromLibraryCommand, Source={x:Reference RootGrid}}"
                                                                   CommandParameter="{Binding}">
+                                                            <MenuItem.Style>
+                                                                <Style TargetType="MenuItem">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsBuiltIn}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </MenuItem.Style>
                                                             <MenuItem.Icon>
                                                                 <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
                                                             </MenuItem.Icon>

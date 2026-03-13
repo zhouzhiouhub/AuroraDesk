@@ -7,6 +7,7 @@ namespace AuroraDesk.App.ViewModels;
 public partial class WallpaperThumbnailItem : ObservableObject
 {
     public WallpaperItem Model { get; }
+    public bool IsBuiltIn { get; }
 
     public string Id => Model.Id;
     public string Title => Model.Title;
@@ -19,9 +20,10 @@ public partial class WallpaperThumbnailItem : ObservableObject
     [ObservableProperty]
     private bool isSelected;
 
-    public WallpaperThumbnailItem(WallpaperItem model)
+    public WallpaperThumbnailItem(WallpaperItem model, bool isBuiltIn = false)
     {
         Model = model;
+        IsBuiltIn = isBuiltIn;
     }
 
     public void LoadThumbnail()
