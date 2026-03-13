@@ -137,7 +137,7 @@
             </Grid.RowDefinitions>
 
             <!-- ══════ Title bar ══════ -->
-            <Grid Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -171,7 +171,7 @@
             </Grid>
 
             <!-- ══════ Main content ══════ -->
-            <Grid Grid.Row="1" Margin="20,8,20,20">
+            <Grid x:Name="RootGrid" Grid.Row="1" Margin="20,8,20,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" MinWidth="320" />
                     <ColumnDefinition Width="290" />
@@ -369,74 +369,199 @@
                         BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="20,20,20,0">
-                            <StackPanel>
-                                <TextBlock Text="Image Wallpaper"
-                                           FontSize="18" FontWeight="SemiBold"
-                                           FontFamily="Segoe UI Variable Display, Segoe UI"
-                                           Foreground="{StaticResource TextPrimaryBrush}" />
-                                <TextBlock Text="Set a different image for each monitor"
-                                           FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
-                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0" />
+                        <!-- Header -->
+                        <StackPanel Grid.Row="0" Margin="20,20,20,0">
+                            <TextBlock Text="Wallpaper Library"
+                                       FontSize="18" FontWeight="SemiBold"
+                                       FontFamily="Segoe UI Variable Display, Segoe UI"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Import and manage your wallpaper collection"
+                                       FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0" />
 
-                                <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,16,0,16" />
+                            <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,14,0,12" />
 
-                                <!-- Image file -->
-                                <TextBlock Text="IMAGE FILE" FontSize="10" FontWeight="Bold"
-                                           FontFamily="Segoe UI Variable Text, Segoe UI"
-                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8" />
-
-                                <Button Command="{Binding SelectImageCommand}"
-                                        Style="{StaticResource CardButton}"
-                                        HorizontalAlignment="Stretch" Margin="0,0,0,6">
+                            <!-- Import buttons -->
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="6" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Command="{Binding ImportToLibraryCommand}"
+                                        Style="{StaticResource CardButton}" Padding="8,9"
+                                        HorizontalAlignment="Stretch">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                        <TextBlock Text="Browse for image..." VerticalAlignment="Center" />
+                                                   FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                        <TextBlock Text="Files" FontSize="12" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+                                <Button Grid.Column="2" Command="{Binding ImportFolderToLibraryCommand}"
+                                        Style="{StaticResource CardButton}" Padding="8,9"
+                                        HorizontalAlignment="Stretch">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xED43;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                        <TextBlock Text="Folder" FontSize="12" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
 
-                                <Border CornerRadius="4" Padding="10,7" Background="#08FFFFFF" Margin="0,0,0,20"
-                                        Visibility="{Binding SelectedFileName, Converter={StaticResource NotNullToVisibleConverter}}">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="12" VerticalAlignment="Center"
-                                                   Foreground="{StaticResource TextMutedBrush}" Margin="0,0,8,0" />
-                                        <TextBlock Grid.Column="1" Text="{Binding SelectedFileName}"
-                                                   FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   ToolTip="{Binding SelectedImagePath}" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
+                        <!-- Library grid -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,8,20,0">
+                            <Grid>
+                                <!-- Empty state -->
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                            Visibility="{Binding LibraryItems.Count, Converter={StaticResource ZeroToVisibleConverter}}">
+                                    <Border Width="44" Height="44" CornerRadius="22"
+                                            Background="#0FFFFFFF" HorizontalAlignment="Center" Margin="0,0,0,10">
+                                        <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="20" HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{StaticResource TextMutedBrush}" />
+                                    </Border>
+                                    <TextBlock Text="Library is empty"
+                                               FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"
+                                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                    <TextBlock Text="Import images to get started"
+                                               FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center"
+                                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                                               Foreground="{StaticResource TextMutedBrush}" />
+                                </StackPanel>
 
-                                <!-- Display mode -->
-                                <TextBlock Text="DISPLAY MODE" FontSize="10" FontWeight="Bold"
-                                           FontFamily="Segoe UI Variable Text, Segoe UI"
-                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8" />
-
-                                <ComboBox ItemsSource="{Binding AvailableScaleModes}"
-                                          SelectedItem="{Binding SelectedScaleMode}"
-                                          Style="{StaticResource DarkComboBox}" Margin="0,0,0,6" />
-
-                                <TextBlock Text="{Binding ScaleModeDescription}"
-                                           FontSize="11" FontFamily="Segoe UI Variable Text, Segoe UI"
-                                           Foreground="{StaticResource TextMutedBrush}"
-                                           TextWrapping="Wrap" Margin="0,0,0,8" />
-                            </StackPanel>
+                                <!-- Wallpaper thumbnails -->
+                                <ItemsControl ItemsSource="{Binding LibraryItems}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:WallpaperThumbnailItem}">
+                                            <Border Width="118" Height="78" CornerRadius="6" Margin="0,0,6,6"
+                                                    Cursor="Hand" ClipToBounds="True"
+                                                    MouseLeftButtonDown="LibraryItem_Click"
+                                                    ToolTip="{Binding Title}">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+                                                        <Setter Property="BorderThickness" Value="1.5" />
+                                                        <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="BorderBrush">
+                                                                    <Setter.Value>
+                                                                        <SolidColorBrush Color="{StaticResource AuroraGreen}" />
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Setter Property="BorderThickness" Value="2" />
+                                                            </DataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding IsSelected}" Value="False" />
+                                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="BorderBrush">
+                                                                    <Setter.Value>
+                                                                        <SolidColorBrush Color="{StaticResource TextMuted}" />
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Remove from library"
+                                                                  Command="{Binding DataContext.RemoveFromLibraryCommand, Source={x:Reference RootGrid}}"
+                                                                  CommandParameter="{Binding}">
+                                                            <MenuItem.Icon>
+                                                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <Grid>
+                                                    <Image Source="{Binding Thumbnail}"
+                                                           Stretch="UniformToFill"
+                                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    <!-- Title overlay at bottom -->
+                                                    <Border VerticalAlignment="Bottom"
+                                                            Background="#CC000000" Padding="5,2">
+                                                        <TextBlock Text="{Binding Title}"
+                                                                   FontSize="9"
+                                                                   FontFamily="Segoe UI Variable Text, Segoe UI"
+                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
                         </ScrollViewer>
 
+                        <!-- Settings section -->
+                        <StackPanel Grid.Row="2" Margin="20,8,20,0">
+                            <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,0,0,10" />
+
+                            <!-- Selected file info -->
+                            <Border CornerRadius="4" Padding="10,7" Background="#08FFFFFF" Margin="0,0,0,8"
+                                    Visibility="{Binding SelectedFileName, Converter={StaticResource NotNullToVisibleConverter}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextMutedBrush}" Margin="0,0,8,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedFileName}"
+                                               FontSize="12" FontFamily="Segoe UI Variable Text, Segoe UI"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding SelectedImagePath}" VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Display mode -->
+                            <TextBlock Text="DISPLAY MODE" FontSize="10" FontWeight="Bold"
+                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6" />
+
+                            <ComboBox ItemsSource="{Binding AvailableScaleModes}"
+                                      SelectedItem="{Binding SelectedScaleMode}"
+                                      Style="{StaticResource DarkComboBox}" Margin="0,0,0,4" />
+
+                            <TextBlock Text="{Binding ScaleModeDescription}"
+                                       FontSize="11" FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       TextWrapping="Wrap" Margin="0,0,0,4" />
+
+                            <!-- Browse external file link -->
+                            <Button Command="{Binding SelectImageCommand}"
+                                    Background="Transparent" BorderThickness="0"
+                                    Cursor="Hand" HorizontalAlignment="Left"
+                                    Margin="0,0,0,0" Padding="0,2">
+                                <TextBlock FontSize="11" FontFamily="Segoe UI Variable Text, Segoe UI"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           TextDecorations="Underline" Text="or browse external file…" />
+                            </Button>
+                        </StackPanel>
+
                         <!-- Buttons pinned to bottom -->
-                        <StackPanel Grid.Row="1" Margin="20,12,20,20">
-                            <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,0,0,14" />
+                        <StackPanel Grid.Row="3" Margin="20,10,20,20">
+                            <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,0,0,12" />
 
                             <Button Command="{Binding ApplyWallpaperCommand}"
                                     Style="{StaticResource AccentButton}"

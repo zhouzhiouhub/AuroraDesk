@@ -6,6 +6,7 @@ using AuroraDesk.Application.Services;
 using AuroraDesk.Core.Enums;
 using AuroraDesk.Core.Interfaces;
 using AuroraDesk.Infrastructure.Config;
+using AuroraDesk.Infrastructure.Library;
 using AuroraDesk.Infrastructure.Logging;
 using AuroraDesk.Renderers.Image;
 using AuroraDesk.Runtime.Desktop;
@@ -36,6 +37,9 @@ public partial class App : System.Windows.Application
         var configService = _serviceProvider.GetRequiredService<IConfigService>();
         configService.Load();
 
+        var wallpaperLibrary = _serviceProvider.GetRequiredService<IWallpaperLibrary>();
+        wallpaperLibrary.Load();
+
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
 
@@ -51,6 +55,7 @@ public partial class App : System.Windows.Application
         });
 
         services.AddSingleton<IConfigService, JsonConfigService>();
+        services.AddSingleton<IWallpaperLibrary, JsonWallpaperLibrary>();
         services.AddSingleton<IDesktopHost, DesktopHostManager>();
 
         services.AddSingleton<Func<WallpaperType, IWallpaperRenderer>>(_ => type => type switch
@@ -85,7 +90,7 @@ public partial class App : System.Windows.Application
         DispatcherUnhandledException += (_, e) =>
         {
             Log.Error(e.Exception, "Unhandled UI exception");
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"An unexpected error occurred:\n{e.Exception.Message}",
                 "AuroraDesk Error",
                 MessageBoxButton.OK,

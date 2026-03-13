@@ -45,6 +45,7 @@
             <conv:NotNullToVisibleConverter x:Key="NotNullToVisibleConverter" />
             <conv:StartsWithActiveConverter x:Key="StartsWithActiveConverter" />
             <conv:BoolToVisibleConverter x:Key="BoolToVisibleConverter" />
+            <conv:ZeroToVisibleConverter x:Key="ZeroToVisibleConverter" />
 
             <!-- ═══════════════════════════════════════════ -->
             <!-- Custom ComboBox (dark theme)               -->

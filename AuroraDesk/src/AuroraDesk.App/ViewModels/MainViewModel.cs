@@ -4,9 +4,12 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using AuroraDesk.Application.Services;
 using AuroraDesk.Core.Enums;
+using AuroraDesk.Core.Interfaces;
+using AuroraDesk.Core.Models;
+using AuroraDesk.Shared.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace AuroraDesk.App.ViewModels;
@@ -14,9 +17,14 @@ namespace AuroraDesk.App.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly WallpaperService _wallpaperService;
+    private readonly IWallpaperLibrary _wallpaperLibrary;
     private readonly ILogger<MainViewModel> _logger;
 
+    private static readonly HashSet<string> SupportedExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp", ".webp" };
+
     public ObservableCollection<MonitorDisplayItem> Monitors { get; } = new();
+    public ObservableCollection<WallpaperThumbnailItem> LibraryItems { get; } = new();
 
     [ObservableProperty]
     private MonitorDisplayItem? selectedMonitor;
@@ -39,6 +47,12 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool isApplying;
+
+    [ObservableProperty]
+    private bool isImporting;
+
+    [ObservableProperty]
+    private WallpaperThumbnailItem? selectedLibraryItem;
 
     public ScaleMode[] AvailableScaleModes { get; } =
         [ScaleMode.Fill, ScaleMode.Fit, ScaleMode.Stretch, ScaleMode.Center];
@@ -76,11 +90,16 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    public MainViewModel(WallpaperService wallpaperService, ILogger<MainViewModel> logger)
+    public MainViewModel(
+        WallpaperService wallpaperService,
+        IWallpaperLibrary wallpaperLibrary,
+        ILogger<MainViewModel> logger)
     {
         _wallpaperService = wallpaperService;
+        _wallpaperLibrary = wallpaperLibrary;
         _logger = logger;
         LoadMonitors();
+        LoadLibrary();
     }
 
     partial void OnSelectedImagePathChanged(string? value)
@@ -183,6 +202,231 @@ public partial class MainViewModel : ObservableObject
         {
             SelectedImagePath = dialog.FileName;
             LoadPreview(dialog.FileName);
+            ClearLibrarySelection();
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportToLibrary()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Import Wallpapers to Library",
+            Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.webp|All Files|*.*",
+            Multiselect = true
+        };
+
+        if (dialog.ShowDialog() != true || dialog.FileNames.Length == 0) return;
+
+        IsImporting = true;
+        StatusText = "Importing wallpapers...";
+
+        try
+        {
+            var newItems = new List<WallpaperItem>();
+
+            await Task.Run(() =>
+            {
+                foreach (var file in dialog.FileNames)
+                {
+                    if (_wallpaperLibrary.ExistsByPath(file)) continue;
+                    if (!SupportedExtensions.Contains(Path.GetExtension(file))) continue;
+
+                    var item = CreateWallpaperItem(file);
+                    if (item is not null) newItems.Add(item);
+                }
+
+                if (newItems.Count > 0)
+                    _wallpaperLibrary.AddRange(newItems);
+            });
+
+            foreach (var item in newItems)
+            {
+                var thumbItem = new WallpaperThumbnailItem(item);
+                thumbItem.LoadThumbnail();
+                LibraryItems.Add(thumbItem);
+            }
+
+            StatusText = newItems.Count > 0
+                ? $"Imported {newItems.Count} wallpaper(s)"
+                : "No new wallpapers to import (duplicates skipped)";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Import failed: {ex.Message}";
+            _logger.LogError(ex, "Failed to import wallpapers");
+        }
+        finally
+        {
+            IsImporting = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportFolderToLibrary()
+    {
+        var dialog = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "Select a folder to scan for wallpapers",
+            UseDescriptionForTitle = true,
+        };
+
+        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
+        IsImporting = true;
+        StatusText = "Scanning folder...";
+
+        try
+        {
+            var newItems = new List<WallpaperItem>();
+
+            await Task.Run(() =>
+            {
+                var files = Directory.EnumerateFiles(dialog.SelectedPath, "*.*", SearchOption.AllDirectories)
+                    .Where(f => SupportedExtensions.Contains(Path.GetExtension(f)));
+
+                foreach (var file in files)
+                {
+                    if (_wallpaperLibrary.ExistsByPath(file)) continue;
+
+                    var item = CreateWallpaperItem(file);
+                    if (item is not null) newItems.Add(item);
+                }
+
+                if (newItems.Count > 0)
+                    _wallpaperLibrary.AddRange(newItems);
+            });
+
+            foreach (var item in newItems)
+            {
+                var thumbItem = new WallpaperThumbnailItem(item);
+                thumbItem.LoadThumbnail();
+                LibraryItems.Add(thumbItem);
+            }
+
+            StatusText = newItems.Count > 0
+                ? $"Imported {newItems.Count} wallpaper(s) from folder"
+                : "No new wallpapers found in folder";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Folder import failed: {ex.Message}";
+            _logger.LogError(ex, "Failed to import folder");
+        }
+        finally
+        {
+            IsImporting = false;
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveFromLibrary(WallpaperThumbnailItem? item)
+    {
+        if (item is null) return;
+
+        _wallpaperLibrary.Remove(item.Id);
+        LibraryItems.Remove(item);
+
+        if (SelectedLibraryItem == item)
+        {
+            SelectedLibraryItem = null;
+            SelectedImagePath = null;
+            PreviewImage = null;
+        }
+
+        StatusText = $"Removed \"{item.Title}\" from library";
+    }
+
+    public void SelectLibraryItem(WallpaperThumbnailItem item)
+    {
+        if (SelectedLibraryItem is not null)
+            SelectedLibraryItem.IsSelected = false;
+
+        SelectedLibraryItem = item;
+        item.IsSelected = true;
+        SelectedImagePath = item.SourcePath;
+        LoadPreview(item.SourcePath);
+    }
+
+    private void ClearLibrarySelection()
+    {
+        if (SelectedLibraryItem is not null)
+            SelectedLibraryItem.IsSelected = false;
+        SelectedLibraryItem = null;
+    }
+
+    private void LoadLibrary()
+    {
+        LibraryItems.Clear();
+        foreach (var item in _wallpaperLibrary.GetAll())
+        {
+            var thumbItem = new WallpaperThumbnailItem(item);
+            thumbItem.LoadThumbnail();
+            LibraryItems.Add(thumbItem);
+        }
+    }
+
+    private WallpaperItem? CreateWallpaperItem(string filePath)
+    {
+        try
+        {
+            var id = Guid.NewGuid().ToString("N")[..12];
+            var title = Path.GetFileNameWithoutExtension(filePath);
+
+            int width = 0, height = 0;
+            try
+            {
+                using var stream = File.OpenRead(filePath);
+                var decoder = BitmapDecoder.Create(
+                    stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
+                if (decoder.Frames.Count > 0)
+                {
+                    width = decoder.Frames[0].PixelWidth;
+                    height = decoder.Frames[0].PixelHeight;
+                }
+            }
+            catch { /* dimensions unknown, not critical */ }
+
+            var thumbnailPath = GenerateThumbnail(filePath, id);
+
+            return new WallpaperItem(
+                id, WallpaperType.Image, filePath, title,
+                thumbnailPath, null, width, height, [], DateTime.Now);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create wallpaper item for {Path}", filePath);
+            return null;
+        }
+    }
+
+    private string? GenerateThumbnail(string sourcePath, string id)
+    {
+        try
+        {
+            var thumbDir = PathHelper.GetThumbnailPath();
+            Directory.CreateDirectory(thumbDir);
+            var thumbPath = Path.Combine(thumbDir, $"{id}.jpg");
+
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(sourcePath, UriKind.Absolute);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.DecodePixelWidth = 240;
+            bitmap.EndInit();
+            bitmap.Freeze();
+
+            var encoder = new JpegBitmapEncoder { QualityLevel = 80 };
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var fs = File.Create(thumbPath);
+            encoder.Save(fs);
+
+            return thumbPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to generate thumbnail for {Path}", sourcePath);
+            return null;
         }
     }
 

@@ -17,6 +17,9 @@ public static class PathHelper
     public static string GetThumbnailPath() =>
         Path.Combine(GetCachePath(), "thumbnails");
 
+    public static string GetLibraryDataPath() =>
+        Path.Combine(GetAppDataPath(), "library.json");
+
     public static void EnsureDirectories()
     {
         Directory.CreateDirectory(GetAppDataPath());
