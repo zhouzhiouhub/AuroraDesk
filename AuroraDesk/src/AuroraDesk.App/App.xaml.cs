@@ -8,7 +8,9 @@ using AuroraDesk.Core.Interfaces;
 using AuroraDesk.Infrastructure.Config;
 using AuroraDesk.Infrastructure.Library;
 using AuroraDesk.Infrastructure.Logging;
+using AuroraDesk.Renderers.Html;
 using AuroraDesk.Renderers.Image;
+using AuroraDesk.Renderers.Video;
 using AuroraDesk.Runtime.Desktop;
 using AuroraDesk.Shared.Helpers;
 using AuroraDesk.App.ViewModels;
@@ -61,6 +63,8 @@ public partial class App : System.Windows.Application
         services.AddSingleton<Func<WallpaperType, IWallpaperRenderer>>(_ => type => type switch
         {
             WallpaperType.Image => new ImageRenderer(),
+            WallpaperType.Video => new VideoRenderer(),
+            WallpaperType.Html => new HtmlRenderer(),
             _ => throw new NotSupportedException($"Wallpaper type '{type}' is not supported in this version.")
         });
 
@@ -91,8 +95,8 @@ public partial class App : System.Windows.Application
         {
             Log.Error(e.Exception, "Unhandled UI exception");
             System.Windows.MessageBox.Show(
-                $"An unexpected error occurred:\n{e.Exception.Message}",
-                "AuroraDesk Error",
+                $"发生未处理异常：\n{e.Exception.Message}",
+                "AuroraDesk 错误",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             e.Handled = true;

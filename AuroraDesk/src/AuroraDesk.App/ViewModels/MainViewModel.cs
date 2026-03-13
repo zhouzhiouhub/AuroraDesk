@@ -28,8 +28,20 @@ public partial class MainViewModel : ObservableObject
     private readonly List<WallpaperThumbnailItem> _builtInLibraryItems = [];
     private readonly List<WallpaperThumbnailItem> _userLibraryItems = [];
 
-    private static readonly HashSet<string> SupportedExtensions =
+    private static readonly HashSet<string> SupportedImageExtensions =
         new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp", ".webp" };
+
+    private static readonly HashSet<string> SupportedVideoExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".mp4", ".webm", ".mkv", ".mov", ".avi" };
+
+    private static readonly HashSet<string> SupportedHtmlExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".html", ".htm" };
+
+    private static readonly HashSet<string> SupportedExtensions = new(
+        SupportedImageExtensions
+            .Concat(SupportedVideoExtensions)
+            .Concat(SupportedHtmlExtensions),
+        StringComparer.OrdinalIgnoreCase);
 
     public ObservableCollection<MonitorDisplayItem> Monitors { get; } = new();
     public ObservableCollection<WallpaperThumbnailItem> LibraryItems { get; } = new();
@@ -42,10 +54,13 @@ public partial class MainViewModel : ObservableObject
     private string? selectedImagePath;
 
     [ObservableProperty]
+    private WallpaperType selectedWallpaperType = WallpaperType.Image;
+
+    [ObservableProperty]
     private ScaleMode selectedScaleMode = ScaleMode.Fill;
 
     [ObservableProperty]
-    private string statusText = "Ready";
+    private string statusText = "就绪";
 
     [ObservableProperty]
     private bool isWallpaperActive;
@@ -72,27 +87,48 @@ public partial class MainViewModel : ObservableObject
         ? null
         : Path.GetFileName(SelectedImagePath);
 
+    public string SelectedWallpaperTypeText => SelectedWallpaperType switch
+    {
+        WallpaperType.Image => "图片",
+        WallpaperType.Video => "视频",
+        WallpaperType.Html => "HTML",
+        _ => "未知",
+    };
+
+    public string PreviewPlaceholderTitle => string.IsNullOrEmpty(SelectedImagePath)
+        ? "未选择壁纸"
+        : "当前无法预览";
+
+    public string PreviewPlaceholderHint => string.IsNullOrEmpty(SelectedImagePath)
+        ? "选择壁纸后，点击应用到显示器"
+        : SelectedWallpaperType switch
+        {
+            WallpaperType.Video => "当前版本暂不在此区域渲染视频预览",
+            WallpaperType.Html => "当前版本暂不在此区域渲染 HTML 预览",
+            _ => "选择壁纸后，点击应用到显示器",
+        };
+
     public bool IsBuiltInLibrarySelected => SelectedLibraryScope == LibraryScope.BuiltIn;
     public bool IsUserLibrarySelected => SelectedLibraryScope == LibraryScope.User;
 
     public string LibraryDescription => IsBuiltInLibrarySelected
-        ? "Built-in wallpapers shipped with AuroraDesk"
-        : "Import and manage your custom wallpapers";
+        ? "AuroraDesk 内置壁纸库"
+        : "导入并管理你的自定义壁纸";
 
     public string EmptyLibraryTitle => IsBuiltInLibrarySelected
-        ? "Built-in library is empty"
-        : "Custom library is empty";
+        ? "内置壁纸库为空"
+        : "自定义壁纸库为空";
 
     public string EmptyLibraryHint => IsBuiltInLibrarySelected
-        ? "Put images into Library/wallpapers to use built-in items"
-        : "Import images or folders to get started";
+        ? "将资源放入 Library/wallpapers 后可在此显示"
+        : "导入文件或文件夹后即可开始使用";
 
     public string ScaleModeDescription => SelectedScaleMode switch
     {
-        ScaleMode.Fill => "Fill the screen and crop edges to remove letterboxing",
-        ScaleMode.Fit => "Show the full image, letterbox if aspect ratio differs",
-        ScaleMode.Stretch => "Stretch to fill exactly, may distort the image",
-        ScaleMode.Center => "Display at original size, centered on screen",
+        ScaleMode.Fill => "铺满屏幕，按比例裁切边缘避免黑边",
+        ScaleMode.Fit => "完整显示图片，比例不一致时保留黑边",
+        ScaleMode.Stretch => "拉伸到完全填满，可能产生形变",
+        ScaleMode.Center => "按原始尺寸居中显示",
         _ => ""
     };
 
@@ -109,9 +145,9 @@ public partial class MainViewModel : ObservableObject
     {
         get
         {
-            if (SelectedMonitor is null) return "No monitor selected";
+            if (SelectedMonitor is null) return "未选择显示器";
             var p = SelectedMonitor.Profile;
-            var label = p.IsPrimary ? "Primary" : $"Monitor {SelectedMonitor.Index}";
+            var label = p.IsPrimary ? "主显示器" : $"显示器 {SelectedMonitor.Index}";
             return $"{label}  {p.Bounds.Width} × {p.Bounds.Height}";
         }
     }
@@ -131,6 +167,18 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedImagePathChanged(string? value)
     {
         OnPropertyChanged(nameof(SelectedFileName));
+        OnPropertyChanged(nameof(PreviewPlaceholderTitle));
+        OnPropertyChanged(nameof(PreviewPlaceholderHint));
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            SelectedWallpaperType = DetectWallpaperType(value);
+        }
+    }
+
+    partial void OnSelectedWallpaperTypeChanged(WallpaperType value)
+    {
+        OnPropertyChanged(nameof(SelectedWallpaperTypeText));
+        OnPropertyChanged(nameof(PreviewPlaceholderHint));
     }
 
     partial void OnSelectedScaleModeChanged(ScaleMode value)
@@ -211,8 +259,9 @@ public partial class MainViewModel : ObservableObject
         {
             SelectedImagePath = assignment.Value.Path;
             SelectedScaleMode = assignment.Value.Mode;
+            SelectedWallpaperType = assignment.Value.Type;
             IsWallpaperActive = true;
-            LoadPreview(assignment.Value.Path);
+            LoadPreview(assignment.Value.Path, assignment.Value.Type);
             UpdateStatus();
         }
         else
@@ -221,7 +270,7 @@ public partial class MainViewModel : ObservableObject
             SelectedScaleMode = ScaleMode.Fill;
             IsWallpaperActive = false;
             PreviewImage = null;
-            StatusText = "Ready";
+            StatusText = "就绪";
         }
     }
 
@@ -230,15 +279,15 @@ public partial class MainViewModel : ObservableObject
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select Wallpaper Image",
-            Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.webp|All Files|*.*",
+            Title = "选择壁纸文件",
+            Filter = "壁纸文件|*.jpg;*.jpeg;*.png;*.bmp;*.webp;*.mp4;*.webm;*.mkv;*.mov;*.avi;*.html;*.htm|图片文件|*.jpg;*.jpeg;*.png;*.bmp;*.webp|视频文件|*.mp4;*.webm;*.mkv;*.mov;*.avi|HTML 文件|*.html;*.htm|所有文件|*.*",
             Multiselect = false
         };
 
         if (dialog.ShowDialog() == true)
         {
             SelectedImagePath = dialog.FileName;
-            LoadPreview(dialog.FileName);
+            LoadPreview(dialog.FileName, DetectWallpaperType(dialog.FileName));
             ClearLibrarySelection();
         }
     }
@@ -260,15 +309,15 @@ public partial class MainViewModel : ObservableObject
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Import Wallpapers to Library",
-            Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.webp|All Files|*.*",
+            Title = "导入壁纸到资源库",
+            Filter = "壁纸文件|*.jpg;*.jpeg;*.png;*.bmp;*.webp;*.mp4;*.webm;*.mkv;*.mov;*.avi;*.html;*.htm|所有文件|*.*",
             Multiselect = true
         };
 
         if (dialog.ShowDialog() != true || dialog.FileNames.Length == 0) return;
 
         IsImporting = true;
-        StatusText = "Importing wallpapers...";
+        StatusText = "正在导入壁纸...";
 
         try
         {
@@ -299,12 +348,12 @@ public partial class MainViewModel : ObservableObject
             }
 
             StatusText = newItems.Count > 0
-                ? $"Imported {newItems.Count} wallpaper(s)"
-                : "No new wallpapers to import (duplicates skipped)";
+                ? $"已导入 {newItems.Count} 个壁纸"
+                : "没有可导入的新壁纸（已跳过重复项）";
         }
         catch (Exception ex)
         {
-            StatusText = $"Import failed: {ex.Message}";
+            StatusText = $"导入失败：{ex.Message}";
             _logger.LogError(ex, "Failed to import wallpapers");
         }
         finally
@@ -318,14 +367,14 @@ public partial class MainViewModel : ObservableObject
     {
         var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
-            Description = "Select a folder to scan for wallpapers",
+            Description = "选择要扫描壁纸的文件夹",
             UseDescriptionForTitle = true,
         };
 
         if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 
         IsImporting = true;
-        StatusText = "Scanning folder...";
+        StatusText = "正在扫描文件夹...";
 
         try
         {
@@ -358,12 +407,12 @@ public partial class MainViewModel : ObservableObject
             }
 
             StatusText = newItems.Count > 0
-                ? $"Imported {newItems.Count} wallpaper(s) from folder"
-                : "No new wallpapers found in folder";
+                ? $"已从文件夹导入 {newItems.Count} 个壁纸"
+                : "文件夹中未发现可导入的新壁纸";
         }
         catch (Exception ex)
         {
-            StatusText = $"Folder import failed: {ex.Message}";
+            StatusText = $"文件夹导入失败：{ex.Message}";
             _logger.LogError(ex, "Failed to import folder");
         }
         finally
@@ -378,7 +427,7 @@ public partial class MainViewModel : ObservableObject
         if (item is null) return;
         if (item.IsBuiltIn)
         {
-            StatusText = "Built-in wallpapers cannot be removed";
+            StatusText = "内置壁纸不支持移除";
             return;
         }
 
@@ -393,7 +442,7 @@ public partial class MainViewModel : ObservableObject
             PreviewImage = null;
         }
 
-        StatusText = $"Removed \"{item.Title}\" from library";
+        StatusText = $"已从资源库移除 \"{item.Title}\"";
     }
 
     public void SelectLibraryItem(WallpaperThumbnailItem item)
@@ -404,7 +453,8 @@ public partial class MainViewModel : ObservableObject
         SelectedLibraryItem = item;
         item.IsSelected = true;
         SelectedImagePath = item.SourcePath;
-        LoadPreview(item.SourcePath);
+        SelectedWallpaperType = item.Model.Type;
+        LoadPreview(item.SourcePath, item.Model.Type);
     }
 
     private void ClearLibrarySelection()
@@ -489,27 +539,34 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
+            var type = DetectWallpaperType(filePath);
             var id = Guid.NewGuid().ToString("N")[..12];
             var title = Path.GetFileNameWithoutExtension(filePath);
 
             int width = 0, height = 0;
-            try
-            {
-                using var stream = File.OpenRead(filePath);
-                var decoder = BitmapDecoder.Create(
-                    stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
-                if (decoder.Frames.Count > 0)
-                {
-                    width = decoder.Frames[0].PixelWidth;
-                    height = decoder.Frames[0].PixelHeight;
-                }
-            }
-            catch { /* dimensions unknown, not critical */ }
 
-            var thumbnailPath = generateThumbnail ? GenerateThumbnail(filePath, id) : null;
+            if (type == WallpaperType.Image)
+            {
+                try
+                {
+                    using var stream = File.OpenRead(filePath);
+                    var decoder = BitmapDecoder.Create(
+                        stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
+                    if (decoder.Frames.Count > 0)
+                    {
+                        width = decoder.Frames[0].PixelWidth;
+                        height = decoder.Frames[0].PixelHeight;
+                    }
+                }
+                catch { /* dimensions unknown, not critical */ }
+            }
+
+            var thumbnailPath = generateThumbnail && type == WallpaperType.Image
+                ? GenerateThumbnail(filePath, id)
+                : null;
 
             return new WallpaperItem(
-                id, WallpaperType.Image, filePath, title,
+                id, type, filePath, title,
                 thumbnailPath, null, width, height, [], DateTime.Now);
         }
         catch (Exception ex)
@@ -555,12 +612,13 @@ public partial class MainViewModel : ObservableObject
         if (string.IsNullOrEmpty(SelectedImagePath) || SelectedMonitor is null) return;
 
         IsApplying = true;
-        StatusText = "Applying wallpaper...";
+        StatusText = "正在应用壁纸...";
 
         try
         {
-            await _wallpaperService.ApplyImageAsync(
+            await _wallpaperService.ApplyWallpaperAsync(
                 SelectedMonitor.Profile.MonitorId,
+                SelectedWallpaperType,
                 SelectedImagePath,
                 SelectedScaleMode);
 
@@ -570,12 +628,12 @@ public partial class MainViewModel : ObservableObject
         }
         catch (FileNotFoundException)
         {
-            StatusText = "File not found — the image may have been moved or deleted";
+            StatusText = "文件不存在，壁纸资源可能已被移动或删除";
             IsWallpaperActive = false;
         }
         catch (Exception ex)
         {
-            StatusText = $"Failed to apply: {ex.Message}";
+            StatusText = $"应用失败：{ex.Message}";
             IsWallpaperActive = false;
             _logger.LogError(ex, "Failed to apply wallpaper from UI");
         }
@@ -595,7 +653,7 @@ public partial class MainViewModel : ObservableObject
         _wallpaperService.ClearMonitor(SelectedMonitor.Profile.MonitorId);
         SelectedMonitor.HasWallpaper = false;
         IsWallpaperActive = false;
-        StatusText = "Wallpaper cleared";
+        StatusText = "已清除该显示器壁纸";
     }
 
     public void RefreshState()
@@ -617,21 +675,53 @@ public partial class MainViewModel : ObservableObject
         if (assignment.HasValue)
         {
             var fileName = Path.GetFileName(assignment.Value.Path);
-            var monLabel = SelectedMonitor.IsPrimary ? "Primary" : $"Monitor {SelectedMonitor.Index}";
-            StatusText = $"Active on {monLabel} — {fileName} ({assignment.Value.Mode})";
+            var monLabel = SelectedMonitor.IsPrimary ? "主显示器" : $"显示器 {SelectedMonitor.Index}";
+            var typeText = assignment.Value.Type switch
+            {
+                WallpaperType.Image => "图片",
+                WallpaperType.Video => "视频",
+                WallpaperType.Html => "HTML",
+                _ => "未知",
+            };
+            StatusText = $"{monLabel} 已启用：{fileName}（{typeText}，{GetScaleModeDisplayName(assignment.Value.Mode)}）";
             IsWallpaperActive = true;
         }
         else
         {
-            StatusText = "Ready";
+            StatusText = "就绪";
             IsWallpaperActive = false;
         }
     }
 
-    private void LoadPreview(string path)
+    private static string GetScaleModeDisplayName(ScaleMode mode) => mode switch
+    {
+        ScaleMode.Fill => "铺满",
+        ScaleMode.Fit => "适应",
+        ScaleMode.Stretch => "拉伸",
+        ScaleMode.Center => "居中",
+        _ => mode.ToString(),
+    };
+
+    private static WallpaperType DetectWallpaperType(string sourcePath)
+    {
+        var extension = Path.GetExtension(sourcePath);
+        if (SupportedVideoExtensions.Contains(extension))
+            return WallpaperType.Video;
+        if (SupportedHtmlExtensions.Contains(extension))
+            return WallpaperType.Html;
+        return WallpaperType.Image;
+    }
+
+    private void LoadPreview(string path, WallpaperType type)
     {
         try
         {
+            if (type != WallpaperType.Image)
+            {
+                PreviewImage = null;
+                return;
+            }
+
             if (!File.Exists(path))
             {
                 PreviewImage = null;

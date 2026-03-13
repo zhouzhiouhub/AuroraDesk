@@ -1,4 +1,5 @@
 using System.Windows.Media.Imaging;
+using AuroraDesk.Core.Enums;
 using AuroraDesk.Core.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -12,7 +13,24 @@ public partial class WallpaperThumbnailItem : ObservableObject
     public string Id => Model.Id;
     public string Title => Model.Title;
     public string SourcePath => Model.SourcePath;
-    public string Resolution => $"{Model.Width} × {Model.Height}";
+    public string Resolution => Model.Width > 0 && Model.Height > 0
+        ? $"{Model.Width} × {Model.Height}"
+        : "未知";
+    public string TypeLabel => Model.Type switch
+    {
+        WallpaperType.Image => "图片",
+        WallpaperType.Video => "视频",
+        WallpaperType.Html => "HTML",
+        _ => "未知",
+    };
+
+    public string TypeGlyph => Model.Type switch
+    {
+        WallpaperType.Image => "\uE91B",
+        WallpaperType.Video => "\uE714",
+        WallpaperType.Html => "\uEB41",
+        _ => "\uE8A5",
+    };
 
     [ObservableProperty]
     private BitmapImage? thumbnail;

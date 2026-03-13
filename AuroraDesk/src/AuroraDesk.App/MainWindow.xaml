@@ -203,7 +203,7 @@
                                     <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="14" VerticalAlignment="Center"
                                                Foreground="{StaticResource TextMutedBrush}" Margin="0,0,8,0" />
-                                    <TextBlock Text="Preview" FontSize="13" FontWeight="SemiBold"
+                                    <TextBlock Text="预览" FontSize="13" FontWeight="SemiBold"
                                                FontFamily="Segoe UI Variable Text, Segoe UI"
                                                Foreground="{StaticResource TextPrimaryBrush}"
                                                VerticalAlignment="Center" />
@@ -227,7 +227,7 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Text="Select a monitor to configure"
+                                <TextBlock Grid.Row="0" Text="选择要配置的显示器"
                                            FontSize="11" Margin="0,0,0,8"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
                                            Foreground="{StaticResource TextMutedBrush}" />
@@ -339,11 +339,11 @@
                                                VerticalAlignment="Center"
                                                Foreground="{StaticResource TextMutedBrush}" />
                                 </Border>
-                                <TextBlock Text="No wallpaper on this monitor"
+                                <TextBlock Text="{Binding PreviewPlaceholderTitle}"
                                            FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
                                            Foreground="{StaticResource TextSecondaryBrush}" />
-                                <TextBlock Text="Select an image and click Apply to set it"
+                                <TextBlock Text="{Binding PreviewPlaceholderHint}"
                                            FontSize="12" Margin="0,5,0,0" HorizontalAlignment="Center"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
                                            Foreground="{StaticResource TextMutedBrush}" />
@@ -377,7 +377,7 @@
 
                         <!-- Header -->
                         <StackPanel Grid.Row="0" Margin="20,20,20,0">
-                            <TextBlock Text="Wallpaper Library"
+                            <TextBlock Text="壁纸资源库"
                                        FontSize="18" FontWeight="SemiBold"
                                        FontFamily="Segoe UI Variable Display, Segoe UI"
                                        Foreground="{StaticResource TextPrimaryBrush}" />
@@ -397,12 +397,12 @@
                                 <Button Grid.Column="0" Command="{Binding ShowBuiltInLibraryCommand}"
                                         Style="{StaticResource CardButton}" Padding="8,9"
                                         IsEnabled="{Binding IsUserLibrarySelected}">
-                                    <TextBlock Text="Built-in" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="内置" FontSize="12" VerticalAlignment="Center" />
                                 </Button>
                                 <Button Grid.Column="2" Command="{Binding ShowUserLibraryCommand}"
                                         Style="{StaticResource CardButton}" Padding="8,9"
                                         IsEnabled="{Binding IsBuiltInLibrarySelected}">
-                                    <TextBlock Text="Custom" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="自定义" FontSize="12" VerticalAlignment="Center" />
                                 </Button>
                             </Grid>
 
@@ -419,7 +419,7 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0" />
-                                        <TextBlock Text="Files" FontSize="12" VerticalAlignment="Center" />
+                                        <TextBlock Text="文件" FontSize="12" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                                 <Button Grid.Column="2" Command="{Binding ImportFolderToLibraryCommand}"
@@ -428,7 +428,7 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xED43;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0" />
-                                        <TextBlock Text="Folder" FontSize="12" VerticalAlignment="Center" />
+                                        <TextBlock Text="文件夹" FontSize="12" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </Grid>
@@ -500,7 +500,7 @@
                                                 </Border.Style>
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
-                                                        <MenuItem Header="Remove from library"
+                                                        <MenuItem Header="从资源库移除"
                                                                   Command="{Binding DataContext.RemoveFromLibraryCommand, Source={x:Reference RootGrid}}"
                                                                   CommandParameter="{Binding}">
                                                             <MenuItem.Style>
@@ -523,6 +523,18 @@
                                                     <Image Source="{Binding Thumbnail}"
                                                            Stretch="UniformToFill"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    <Border Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibleConverter}}"
+                                                            Background="#22000000">
+                                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding TypeGlyph}" FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="18" HorizontalAlignment="Center"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                                            <TextBlock Text="{Binding TypeLabel}" FontSize="10"
+                                                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                                                       HorizontalAlignment="Center"
+                                                                       Foreground="{StaticResource TextMutedBrush}" />
+                                                        </StackPanel>
+                                                    </Border>
                                                     <!-- Title overlay at bottom -->
                                                     <Border VerticalAlignment="Bottom"
                                                             Background="#CC000000" Padding="5,2">
@@ -551,6 +563,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="12" VerticalAlignment="Center"
@@ -560,11 +573,17 @@
                                                Foreground="{StaticResource TextSecondaryBrush}"
                                                TextTrimming="CharacterEllipsis"
                                                ToolTip="{Binding SelectedImagePath}" VerticalAlignment="Center" />
+                                    <Border Grid.Column="2" CornerRadius="3" Padding="6,2" Margin="8,0,0,0"
+                                            Background="#126EEEB0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding SelectedWallpaperTypeText}"
+                                                   FontSize="10" FontFamily="Segoe UI Variable Text, Segoe UI"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </Border>
                                 </Grid>
                             </Border>
 
                             <!-- Display mode -->
-                            <TextBlock Text="DISPLAY MODE" FontSize="10" FontWeight="Bold"
+                            <TextBlock Text="显示模式" FontSize="10" FontWeight="Bold"
                                        FontFamily="Segoe UI Variable Text, Segoe UI"
                                        Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6" />
 
@@ -584,7 +603,7 @@
                                     Margin="0,0,0,0" Padding="0,2">
                                 <TextBlock FontSize="11" FontFamily="Segoe UI Variable Text, Segoe UI"
                                            Foreground="{StaticResource TextMutedBrush}"
-                                           TextDecorations="Underline" Text="or browse external file…" />
+                                           TextDecorations="Underline" Text="或选择外部文件..." />
                             </Button>
                         </StackPanel>
 
@@ -598,7 +617,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBlock Text="Apply to Monitor" VerticalAlignment="Center" />
+                                    <TextBlock Text="应用到该显示器" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
 
@@ -608,7 +627,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xEA99;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBlock Text="Clear This Monitor" VerticalAlignment="Center" />
+                                    <TextBlock Text="清除此显示器壁纸" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>

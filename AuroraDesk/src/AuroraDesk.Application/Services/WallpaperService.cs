@@ -8,7 +8,8 @@ namespace AuroraDesk.Application.Services;
 public class MonitorWallpaperConfig
 {
     public string DeviceName { get; set; } = "";
-    public string ImagePath { get; set; } = "";
+    public string SourcePath { get; set; } = "";
+    public int WallpaperType { get; set; }
     public int ScaleMode { get; set; }
 }
 
@@ -20,7 +21,7 @@ public sealed class WallpaperService : IDisposable
     private readonly ILogger<WallpaperService> _logger;
 
     private readonly Dictionary<string, IWallpaperRenderer> _renderers = new();
-    private readonly Dictionary<string, (string Path, ScaleMode Mode)> _assignments = new();
+    private readonly Dictionary<string, (string Path, ScaleMode Mode, WallpaperType Type)> _assignments = new();
 
     public WallpaperService(
         IDesktopHost desktopHost,
@@ -38,17 +39,23 @@ public sealed class WallpaperService : IDisposable
 
     public bool HasAssignment(string monitorId) => _assignments.ContainsKey(monitorId);
 
-    public (string Path, ScaleMode Mode)? GetAssignment(string monitorId)
+    public (string Path, ScaleMode Mode, WallpaperType Type)? GetAssignment(string monitorId)
         => _assignments.TryGetValue(monitorId, out var a) ? a : null;
 
     public bool IsMonitorActive(string monitorId) => _renderers.ContainsKey(monitorId);
 
     public async Task ApplyImageAsync(string monitorId, string imagePath, ScaleMode scaleMode)
+        => await ApplyWallpaperAsync(monitorId, WallpaperType.Image, imagePath, scaleMode);
+
+    public async Task ApplyWallpaperAsync(string monitorId, WallpaperType wallpaperType, string sourcePath, ScaleMode scaleMode)
     {
-        if (!File.Exists(imagePath))
+        if (string.IsNullOrWhiteSpace(sourcePath))
+            throw new ArgumentException("Wallpaper source path cannot be empty.", nameof(sourcePath));
+
+        if (wallpaperType is WallpaperType.Image or WallpaperType.Video && !File.Exists(sourcePath))
         {
-            _logger.LogWarning("Image file not found: {Path}", imagePath);
-            throw new FileNotFoundException("Wallpaper image not found.", imagePath);
+            _logger.LogWarning("Wallpaper source file not found: {Path}", sourcePath);
+            throw new FileNotFoundException("Wallpaper source file not found.", sourcePath);
         }
 
         var monitors = _desktopHost.GetAllMonitors();
@@ -63,11 +70,11 @@ public sealed class WallpaperService : IDisposable
 
         try
         {
-            var renderer = _rendererFactory(WallpaperType.Image);
+            var renderer = _rendererFactory(wallpaperType);
             await renderer.InitializeAsync();
 
             var options = new PlaybackOptions(FitMode: scaleMode);
-            await renderer.LoadAsync(imagePath, options);
+            await renderer.LoadAsync(sourcePath, options);
 
             var hwnd = renderer.GetWindowHandle();
             var b = monitor.Bounds;
@@ -79,14 +86,14 @@ public sealed class WallpaperService : IDisposable
             _desktopHost.EmbedWindow(hwnd, b.X, b.Y, b.Width, b.Height);
 
             _renderers[monitorId] = renderer;
-            _assignments[monitorId] = (imagePath, scaleMode);
+            _assignments[monitorId] = (sourcePath, scaleMode, wallpaperType);
 
             SaveConfig();
-            _logger.LogInformation("Applied wallpaper on {Dev}: {Path} ({Mode})", monitorId, imagePath, scaleMode);
+            _logger.LogInformation("Applied wallpaper on {Dev}: {Path} ({Type}, {Mode})", monitorId, sourcePath, wallpaperType, scaleMode);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to apply wallpaper on {Dev}: {Path}", monitorId, imagePath);
+            _logger.LogError(ex, "Failed to apply wallpaper on {Dev}: {Path}", monitorId, sourcePath);
             throw;
         }
     }
@@ -155,7 +162,14 @@ public sealed class WallpaperService : IDisposable
 
         foreach (var cfg in configs)
         {
-            if (string.IsNullOrEmpty(cfg.ImagePath) || !File.Exists(cfg.ImagePath))
+            if (string.IsNullOrEmpty(cfg.SourcePath))
+                continue;
+
+            var wallpaperType = Enum.IsDefined(typeof(WallpaperType), cfg.WallpaperType)
+                ? (WallpaperType)cfg.WallpaperType
+                : WallpaperType.Image;
+
+            if (wallpaperType is WallpaperType.Image or WallpaperType.Video && !File.Exists(cfg.SourcePath))
                 continue;
 
             var monitor = currentMonitors.FirstOrDefault(m => m.DeviceName == cfg.DeviceName);
@@ -168,8 +182,8 @@ public sealed class WallpaperService : IDisposable
             try
             {
                 var mode = (ScaleMode)cfg.ScaleMode;
-                _logger.LogInformation("Restoring wallpaper on {Dev}: {Path} ({Mode})", cfg.DeviceName, cfg.ImagePath, mode);
-                await ApplyImageAsync(monitor.MonitorId, cfg.ImagePath, mode);
+                _logger.LogInformation("Restoring wallpaper on {Dev}: {Path} ({Type}, {Mode})", cfg.DeviceName, cfg.SourcePath, wallpaperType, mode);
+                await ApplyWallpaperAsync(monitor.MonitorId, wallpaperType, cfg.SourcePath, mode);
             }
             catch (Exception ex)
             {
@@ -196,8 +210,9 @@ public sealed class WallpaperService : IDisposable
         var configs = _assignments.Select(kv => new MonitorWallpaperConfig
         {
             DeviceName = kv.Key,
-            ImagePath = kv.Value.Path,
-            ScaleMode = (int)kv.Value.Mode
+            SourcePath = kv.Value.Path,
+            WallpaperType = (int)kv.Value.Type,
+            ScaleMode = (int)kv.Value.Mode,
         }).ToList();
 
         _configService.Set("wallpaper.monitors", configs);

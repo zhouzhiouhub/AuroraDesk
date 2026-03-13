@@ -28,6 +28,8 @@
     <ProjectReference Include="..\AuroraDesk.Infrastructure\AuroraDesk.Infrastructure.csproj" />
     <ProjectReference Include="..\AuroraDesk.Runtime\AuroraDesk.Runtime.csproj" />
     <ProjectReference Include="..\AuroraDesk.Renderers.Image\AuroraDesk.Renderers.Image.csproj" />
+    <ProjectReference Include="..\AuroraDesk.Renderers.Video\AuroraDesk.Renderers.Video.csproj" />
+    <ProjectReference Include="..\AuroraDesk.Renderers.Html\AuroraDesk.Renderers.Html.csproj" />
     <ProjectReference Include="..\AuroraDesk.Shared\AuroraDesk.Shared.csproj" />
   </ItemGroup>
 
